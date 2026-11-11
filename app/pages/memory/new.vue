@@ -1,35 +1,24 @@
 <script setup lang="ts">
-import type { MemoryDraft, MemoryWriteRepository } from '~/types/memory'
+import MemoryCreationForm from '~/components/MemoryCreationForm.vue'
+import type { Memory, MemoryCreateInput, MemoryWriteRepository } from '~/types/memory'
+import { getApiErrorCode, getApiErrorMessage } from '~/utils/api-error'
 
 const repository = useMemoryRepository() as MemoryWriteRepository
 const busy = ref(false)
 const error = ref('')
+const created = ref<Memory | null>(null)
 
 const getErrorMessage = (value: unknown) => {
-  if (value && typeof value === 'object' && 'statusCode' in value && value.statusCode === 409) return 'Memory editing is not enabled for the current sample repository.'
-  return 'The memory could not be saved. Check the fields and try again.'
+  if (getApiErrorCode(value) === 'REPOSITORY_READ_ONLY') return 'Memory creation requires filesystem mode and an archive directory.'
+  if (getApiErrorCode(value) === 'MEMORY_CONFLICT') return 'A memory already exists for this date. Choose another date.'
+  return getApiErrorMessage(value, 'The memory could not be created. Check the fields and try again.')
 }
 
-const save = async (draft: MemoryDraft, file?: File) => {
+const createMemory = async (input: MemoryCreateInput) => {
   busy.value = true
   error.value = ''
   try {
-    const memory = await repository.createMemory(draft)
-    if (file) {
-      try {
-        await repository.uploadMedia(memory.date, file, memory.version || '')
-      } catch {
-        try {
-          await repository.deleteMemory(memory.date, memory.version || '')
-        } catch {
-          error.value = 'The memory was created, but the media upload failed. It remains available without that file.'
-          return
-        }
-        error.value = 'The memory was not saved because the media upload failed. Try again with a supported file under 10 MB.'
-        return
-      }
-    }
-    await navigateTo(`/memory/${memory.date}`)
+    created.value = await repository.createMemory(input)
   } catch (value) {
     error.value = getErrorMessage(value)
   } finally {
@@ -39,5 +28,14 @@ const save = async (draft: MemoryDraft, file?: File) => {
 </script>
 
 <template>
-  <MemoryEditor mode="create" :busy="busy" :error="error" @save="save" @cancel="navigateTo('/timeline')" />
+  <MemoryCreationForm v-if="!created" :busy="busy" :error="error" @save="createMemory" @cancel="navigateTo('/timeline')" />
+
+  <main v-else class="creation-success page-container">
+    <NuxtLink to="/timeline" class="back-link"><AppIcon name="arrow-right" /> Back to timeline</NuxtLink>
+    <p class="eyebrow">A new page / 04</p>
+    <h1>Memory created</h1>
+    <p class="creation-success-lede"><strong>{{ created.title }}</strong> is ready for {{ created.date }}. Continue in your preferred editor, then return here to read it.</p>
+    <ExternalEditingActions :folder-path="created.folderPath" />
+    <NuxtLink :to="`/memory/${created.date}`" class="text-link">Read this memory <AppIcon name="arrow-up-right" /></NuxtLink>
+  </main>
 </template>

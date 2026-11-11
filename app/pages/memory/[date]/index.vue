@@ -3,7 +3,7 @@ import { formatMemoryDate, formatType } from '~/utils/memory'
 
 const route = useRoute()
 const repository = useMemoryRepository()
-const { data: memory, refresh } = await useAsyncData(`memory-${route.params.date}`, () => repository.getMemoryByDate(String(route.params.date)))
+const { data: memory, refresh } = await useAsyncData(`memory-${route.params.date}`, () => repository.getMemoryByDate(String(route.params.date)), { getCachedData: () => undefined })
 const { data: allMemories } = await useAsyncData('memory-navigation', () => repository.getMemories())
 
 if (!memory.value) {
@@ -17,7 +17,7 @@ const deleteError = ref('')
 const deleting = ref(false)
 
 const deleteMemory = async () => {
-  if (!memory.value || !window.confirm(`Delete “${memory.value.title}”? This also removes its media.`)) return
+  if (!memory.value || !window.confirm(`Delete “${memory.value.title}”? This permanently deletes index.md and every file in its media/ folder.`)) return
   deleting.value = true
   deleteError.value = ''
   try {
@@ -45,10 +45,9 @@ useSeoMeta({
       <div class="memory-header-meta"><MemoryMeta :memory="memory" /><span v-if="memory.location" class="location-meta"><AppIcon name="map-pin" />{{ memory.location }}</span></div>
       <h1>{{ memory.title }}</h1>
       <p class="memory-lede">{{ memory.excerpt }}</p>
-      <div class="memory-actions">
-        <NuxtLink :to="`/memory/${memory.date}/edit`" class="text-link">Edit memory <AppIcon name="arrow-up-right" /></NuxtLink>
-        <button type="button" class="text-link text-link--danger" :disabled="deleting" @click="deleteMemory">{{ deleting ? 'Deleting...' : 'Delete memory' }}</button>
-      </div>
+       <div class="memory-actions">
+         <button type="button" class="text-link text-link--danger" :disabled="deleting" @click="deleteMemory">{{ deleting ? 'Deleting...' : 'Delete memory' }}</button>
+       </div>
       <div v-if="deleteError" class="detail-message" role="alert"><span>{{ deleteError }}</span><button type="button" class="text-link" @click="refresh()">Reload memory <AppIcon name="arrow-right" /></button></div>
     </header>
 
@@ -57,18 +56,15 @@ useSeoMeta({
         <div v-if="memory.mood" class="detail-fact"><span class="fact-label">Mood</span><strong>{{ memory.mood.label }}</strong><span class="mood-scale"><span :style="{ width: `${memory.mood.score * 10}%` }" /></span><small>{{ memory.mood.score }} / 10</small></div>
         <div class="detail-fact"><span class="fact-label">Type</span><strong>{{ formatType(memory.type) }}</strong></div>
         <div v-if="memory.tags.length" class="detail-fact"><span class="fact-label">Filed under</span><div class="tag-list"><span v-for="tag in memory.tags" :key="tag">{{ tag }}</span></div></div>
-        <div v-if="memory.music" class="music-note"><span class="fact-label"><AppIcon name="music" /> On repeat</span><strong>{{ memory.music.title }}</strong><span>{{ memory.music.artist }}</span><a :href="memory.music.url" target="_blank" rel="noreferrer">Listen <AppIcon name="arrow-up-right" /></a></div>
-      </aside>
-      <article class="memory-content">
-        <MDC :value="memory.content" />
-        <div v-if="memory.media.length" class="memory-gallery">
-          <figure v-for="image in memory.media" :key="image.src">
-            <img :src="image.src" :alt="image.alt" loading="lazy" decoding="async">
-            <figcaption v-if="image.caption">{{ image.caption }}</figcaption>
-          </figure>
-        </div>
-      </article>
-    </div>
+         <div v-if="memory.music" class="music-note"><span class="fact-label"><AppIcon name="music" /> On repeat</span><strong>{{ memory.music.title }}</strong><span>{{ memory.music.artist }}</span><a :href="memory.music.url" target="_blank" rel="noreferrer">Listen <AppIcon name="arrow-up-right" /></a></div>
+         <div v-if="memory.media.length" class="detail-fact"><span class="fact-label">Media folder</span><strong>{{ memory.media.length }} {{ memory.media.length === 1 ? 'file' : 'files' }}</strong><span>Managed outside Life Archive</span></div>
+       </aside>
+       <article class="memory-content">
+         <MDC :value="memory.content" />
+       </article>
+     </div>
+
+     <ExternalEditingActions :folder-path="memory.folderPath" />
 
     <nav class="memory-navigation" aria-label="Memory navigation">
       <NuxtLink v-if="olderMemory" :to="`/memory/${olderMemory.date}`" class="memory-nav-item memory-nav-item--older"><span class="nav-direction">Older memory</span><strong>{{ olderMemory.title }}</strong><span>{{ formatMemoryDate(olderMemory.date, { month: 'short', day: 'numeric', year: 'numeric' }) }}</span></NuxtLink>

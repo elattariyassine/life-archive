@@ -10,7 +10,7 @@ export const fixtureMemories: Memory[] = [
     location: 'Marrakech, Morocco',
     excerpt: 'A quiet morning of thinking about the shape of the next year, and the courage it takes to leave a little room for it.',
     content: '## What happened\n\nToday I spent some time thinking about my future. Not in the urgent, list-making way I usually do, but with enough stillness to notice what I actually want.\n\nThe answer is less about a destination and more about making a little room: room for long mornings, for work that feels useful, for the people I love, and for the occasional unplanned afternoon.\n\n> The next chapter does not need to be louder. It just needs to be mine.\n\nI left the notebook open on the table and went for a walk. It felt like a small beginning.',
-    media: [{ src: '/sample-media/window.svg', alt: 'Sunlight falling across a quiet room', caption: 'A room ready for whatever comes next.' }],
+    media: [{ src: '/sample-media/window.svg', alt: 'Sunlight falling across a quiet room' }],
     music: { title: 'An Ending, a Beginning', artist: 'Dustin O’Halloran', url: 'https://open.spotify.com/' }
   },
   {
@@ -22,7 +22,7 @@ export const fixtureMemories: Memory[] = [
     location: 'Essaouira, Morocco',
     excerpt: 'We missed the turn twice and found the best part of the coast because of it.',
     content: '## The long way home\n\nWe left Marrakech before the heat arrived and took the road that looked least direct. By the time we reached the coast, the car was full of sand, orange peels, and the kind of conversation that only happens when no one is checking the time.\n\nEssaouira was windy and blue. We ate lunch beside a blue door, walked until our shoes filled with sand, and watched the fishing boats come in just before dusk.\n\nSome places are worth reaching slowly.',
-    media: [{ src: '/sample-media/coast.svg', alt: 'A blue Atlantic coast at dusk', caption: 'The coast, just before the light changed.' }],
+    media: [{ src: '/sample-media/coast.svg', alt: 'A blue Atlantic coast at dusk' }],
     music: { title: 'Alameda', artist: 'Elliott Smith', url: 'https://open.spotify.com/' }
   },
   {
@@ -34,7 +34,7 @@ export const fixtureMemories: Memory[] = [
     location: 'Marrakech, Morocco',
     excerpt: 'The last box is unpacked. The room finally feels less like a place I moved into and more like a place I live.',
     content: '## A room of my own\n\nThe last box is unpacked. It contained cables, a chipped mug, and three books I thought I had lost.\n\nFor the first time, the room has no instructions for me. The desk is by the window. The lamp works. There is a plant on the sill that may or may not survive the summer.\n\nIt is not a grand milestone, but it feels like one. I have made a place where the day can begin gently.',
-    media: [{ src: '/sample-media/desk.svg', alt: 'A small desk beside an open window', caption: 'The desk, finally in its place.' }]
+    media: [{ src: '/sample-media/desk.svg', alt: 'A small desk beside an open window' }]
   },
   {
     date: '2026-04-21',
@@ -55,7 +55,7 @@ export const fixtureMemories: Memory[] = [
     location: 'Rabat, Morocco',
     excerpt: 'We kept the evening simple: soup, old photographs, and a toast to getting through another year together.',
     content: '## A softer ending\n\nWe kept the evening simple. Soup on the stove, old photographs spread across the table, and a toast made with whatever was already in the fridge.\n\nThere was no need to summarize the year. We knew the important parts. We had made it through, together, and that was enough.',
-    media: [{ src: '/sample-media/table.svg', alt: 'A warm table set for a simple evening', caption: 'The table at the end of the year.' }]
+    media: [{ src: '/sample-media/table.svg', alt: 'A warm table set for a simple evening' }]
   },
   {
     date: '2025-08-15',
@@ -66,7 +66,7 @@ export const fixtureMemories: Memory[] = [
     location: 'Marrakech, Morocco',
     excerpt: 'Tomatoes, warm pavement, and a long lunch that quietly became dinner.',
     content: '## Sunday in the garden\n\nThe tomatoes are finally ready. We carried bowls outside and ate beneath the lemon tree while the afternoon moved around us.\n\nSomeone brought a radio. Someone else fell asleep in a chair. The table stayed full long after the food was gone.',
-    media: [{ src: '/sample-media/garden.svg', alt: 'A sunlit garden table with tomatoes', caption: 'A long lunch beneath the lemon tree.' }],
+    media: [{ src: '/sample-media/garden.svg', alt: 'A sunlit garden table with tomatoes' }],
     music: { title: 'Sunset Village', artist: 'Bibio', url: 'https://open.spotify.com/' }
   },
   {

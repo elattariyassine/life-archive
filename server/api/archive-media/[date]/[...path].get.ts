@@ -7,11 +7,18 @@ import { assertRequestDate } from '../../../utils/query'
 const mimeTypes: Record<string, string> = {
   '.avif': 'image/avif',
   '.gif': 'image/gif',
+  '.heic': 'image/heic',
   '.jpeg': 'image/jpeg',
   '.jpg': 'image/jpeg',
+  '.m4a': 'audio/mp4',
   '.mp4': 'video/mp4',
+  '.mov': 'video/quicktime',
+  '.mp3': 'audio/mpeg',
+  '.ogg': 'audio/ogg',
   '.png': 'image/png',
+  '.pdf': 'application/pdf',
   '.svg': 'image/svg+xml',
+  '.wav': 'audio/wav',
   '.webm': 'video/webm',
   '.webp': 'image/webp'
 }

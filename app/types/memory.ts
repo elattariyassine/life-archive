@@ -10,9 +10,11 @@ export interface Mood {
 export interface MemoryMedia {
   src: string
   alt: string
-  caption?: string
   path?: string
+  kind?: MemoryMediaKind
 }
+
+export type MemoryMediaKind = 'image' | 'video' | 'audio' | 'document'
 
 export interface MemoryMusic {
   title: string
@@ -32,6 +34,7 @@ export interface Memory {
   media: MemoryMedia[]
   music?: MemoryMusic
   version?: string
+  folderPath?: string
 }
 
 export interface MemoryFilters {
@@ -39,23 +42,18 @@ export interface MemoryFilters {
   month?: number
 }
 
-export interface MemoryDraft {
+export interface MemoryCreateInput {
   date: string
   title: string
   type: MemoryType
   mood?: Mood
   tags: string[]
   location?: string
-  music?: MemoryMusic
-  content: string
 }
 
 export interface MemoryWriteRepository {
-  createMemory(draft: MemoryDraft): Promise<Memory>
-  updateMemory(date: string, draft: MemoryDraft, expectedVersion: string): Promise<Memory>
+  createMemory(input: MemoryCreateInput): Promise<Memory>
   deleteMemory(date: string, expectedVersion: string): Promise<void>
-  uploadMedia(date: string, file: File, expectedVersion: string): Promise<MemoryMedia>
-  removeMedia(date: string, mediaPath: string, expectedVersion: string): Promise<Memory>
 }
 
 export interface MemoryRepository {

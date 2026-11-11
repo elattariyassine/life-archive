@@ -1,6 +1,6 @@
 # Life Archive
 
-Life Archive is a local-first personal memory archive built with Nuxt 4, Vue, TypeScript, and Nuxt Content. The application now reads through a typed API repository. It defaults to the in-memory fixture repository, while a separate Markdown archive can be enabled locally without putting personal data in this public application repository.
+Life Archive is a local-first personal memory organizer and reader built with Nuxt 4, Vue, TypeScript, and Nuxt Content. It creates the folder structure for a memory, then lets VS Code, Obsidian, or another filesystem editor own the Markdown and media. The application defaults to the in-memory fixture repository, while a separate Markdown archive can be enabled locally without putting personal data in this public application repository.
 
 ## Run locally
 
@@ -41,20 +41,20 @@ life-archive-data/
                 └── photo-01.jpg
 ```
 
-The server reads `index.md` frontmatter and Markdown content, scans the adjacent `media/` directory, and returns normalized `Memory` objects. Markdown and original media remain the source of truth. Editing is available only in filesystem mode; the sample repository remains read-only. There is still no file watching, backup, or synchronization.
+The server reads `index.md` frontmatter and Markdown content, scans the adjacent `media/` directory, and returns normalized `Memory` objects. Markdown and original media remain the source of truth. Creation is available only in filesystem mode; the sample repository remains read-only. There is still no file watching, backup, or synchronization.
 
 ## Project structure
 
 ```text
 app/
 ├── assets/css/main.css       # Design tokens and responsive editorial UI
-├── components/               # Shell, navigation, cards, timeline entries, editor
+├── components/               # Shell, navigation, cards, timeline entries, creation and external-editor actions
 ├── composables/              # Repository access used by pages
 ├── data/fixtures.ts          # Realistic sample memories for the MVP
 ├── pages/                    # Home, timeline, detail, gallery, settings
 ├── repositories/             # API adapter, contract and fixture adapter
 ├── types/memory.ts           # Shared memory schema
-└── utils/memory.ts           # Date, type and grouping helpers
+└── utils/                    # Date and API error helpers
 fixtures/archive/             # Sample Markdown source examples, outside app content/
 public/sample-media/          # Offline sample media referenced by the fixtures
 server/api/                   # Typed memory and validated media endpoints
@@ -85,20 +85,19 @@ The read API surface is:
 The write API surface is filesystem-only:
 
 - `POST /api/memories` to create a memory
-- `PUT /api/memories/YYYY-MM-DD` with `expectedVersion` to update a memory
 - `DELETE /api/memories/YYYY-MM-DD` with `expectedVersion` to delete a memory and its media
-- `POST /api/memories/YYYY-MM-DD/media` using multipart `file` and `expectedVersion` fields to upload media
-- `DELETE /api/memories/YYYY-MM-DD/media/<media-path>` with `expectedVersion` to remove media
 
-The editor is available at `/memory/new` and `/memory/YYYY-MM-DD/edit`. It provides structured metadata fields, a Markdown editor/preview toggle, staged media previews, media upload/removal, save/cancel behavior, and conflict reload messaging. A selected media file is sent as binary `FormData` when the memory is saved.
+The creation form at `/memory/new` collects the date, title, type, location, mood, and tags. On success it creates `YYYY/MM/DD/index.md` with YAML frontmatter, creates the adjacent `media/` directory, and writes a minimal `# What happened` body. The success state and every filesystem-backed detail page provide the archive folder path, an `Open in VS Code` action using the registered `vscode://file/...` URI handler, and a `Copy path` fallback. Life Archive does not edit Markdown or upload media.
 
-Missing archive roots return an empty list for reads. Invalid or malformed entries are skipped. Invalid dates and filters return a client error. API responses never include the configured absolute archive path.
+Missing archive roots return an empty list for reads. Invalid or malformed entries are skipped. Invalid dates and filters return a client error. Filesystem-backed memory responses include the resolved memory folder path so the local UI can offer external editing actions; the server never accepts that path as an API input.
 
-Every filesystem read returns a SHA-256 `version` derived from the raw `index.md`. Updates and deletes require that version. If the Markdown file changed externally, the API returns `409 MEMORY_CONFLICT` and does not overwrite it. Markdown updates use a temporary file followed by an atomic rename. Creates and date moves use temporary directories; media uploads use temporary files with no-overwrite linking.
+Every filesystem read returns a SHA-256 `version` derived from the raw `index.md`. Deletes require that version. Creation uses a temporary directory and atomic rename, and an existing date directory is never overwritten. Markdown is never rewritten by the application, so external edits and relative references remain intact on disk.
 
-Uploads are limited to 10 MB and these types: JPEG, PNG, GIF, WebP, AVIF, MP4, and WebM. Filenames must be simple archive-local names; paths, symlinks, and unsupported extensions are rejected. Uploading writes the binary file and a relative `./media/<filename>` Markdown reference together; removing media removes both. Existing names are never overwritten.
+Media is managed directly in the filesystem. The reader discovers files already present in `media/`, renders relative image, video, audio, and PDF references at their original Markdown positions, and transforms their URLs only in the response sent to the renderer. The stored Markdown remains relative and works in Obsidian. Unreferenced files remain in `media/`.
 
-Markdown remains the source of truth. `fixtures/archive/` shows the intended folder and frontmatter shape without placing a personal archive inside the application repository. The TypeScript fixture data is only the temporary sample implementation for this phase.
+Opening VS Code depends on the browser and operating system recognizing the `vscode://` protocol. Browsers may prompt, ignore, or block the request, so the copyable folder path is always provided as the fallback. No desktop app or background process is installed by Life Archive.
+
+Markdown remains the source of truth. `fixtures/archive/2026/11/10/` is a complete demonstration entry with all metadata, multiple relative image references, an audio file, a video, and a PDF in its `media/` directory. Point `NUXT_ARCHIVE_DIR` at `fixtures/archive/` to inspect the same filesystem workflow locally. The TypeScript fixture data is only the temporary sample implementation for this phase.
 
 ## Nuxt Content and Nuxt Studio boundary
 
@@ -113,10 +112,10 @@ Because the personal archive is intentionally a separate local repository, this 
 
 ## Security and Nuxt Content boundary
 
-The archive root is private runtime configuration and is never returned to the client. Dates are strictly validated before path resolution. Filesystem media paths are resolved with `realpath` and must remain inside both the archive root and the requested date's `media/` directory. No API parameter accepts an arbitrary filesystem path.
+Dates are strictly validated before path resolution. Filesystem media paths are resolved with `realpath` and must remain inside both the archive root and the requested date's `media/` directory. No API parameter accepts an arbitrary filesystem path. The resolved memory folder path is returned only to support the local external-editor actions.
 
 Nuxt Content 3.16.2 still reads the project's `content/` directory. Nuxt Studio 1.8.0 edits that same directory and is not enabled here. The external archive is intentionally handled by the server adapter instead of being passed to Nuxt Content or Studio.
 
 ## Tests
 
-`server/repositories/filesystem-memory-repository.test.ts` covers valid Markdown, chronological ordering, year/month filters, create/update/delete, upload/removal, physical media persistence after reload, nonexistent dates, invalid metadata, invalid uploads, malformed Markdown, missing media, missing archive directories, version conflicts, path traversal, duplicate-name protection, symlink escapes, and atomic write cleanup. `app/repositories/api-memory-repository.test.ts` verifies that media uploads send the actual file through `FormData`.
+`server/repositories/filesystem-memory-repository.test.ts` covers metadata creation, expected folder structure, starter Markdown, duplicate-date protection, externally modified Markdown, direct filesystem media discovery, relative image/video/audio/PDF references, relative-reference preservation, deletion version checks, path traversal, symlink escapes, and atomic cleanup. `app/repositories/api-memory-repository.test.ts` covers metadata-only creation and versioned deletion.

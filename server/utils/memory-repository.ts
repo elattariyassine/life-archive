@@ -1,7 +1,7 @@
 import type { H3Event } from 'h3'
 import type { MemoryRepository } from '../../app/types/memory'
 import { createFixtureMemoryRepository } from '../../app/repositories/memory-repository'
-import { ArchivePathError, ArchiveUnavailableError, InvalidArchiveConfigurationError, InvalidMemoryDateError, InvalidMemoryMetadataError, MediaValidationError, MemoryConflictError, MemoryNotFoundError, createFilesystemMemoryRepository, type FilesystemMemoryRepository } from '../repositories/filesystem-memory-repository'
+import { ArchivePathError, ArchiveUnavailableError, InvalidArchiveConfigurationError, InvalidMemoryDateError, InvalidMemoryMetadataError, MemoryConflictError, MemoryNotFoundError, createFilesystemMemoryRepository, type FilesystemMemoryRepository } from '../repositories/filesystem-memory-repository'
 
 export type MemoryRepositoryMode = 'sample' | 'filesystem'
 
@@ -24,7 +24,7 @@ export function getServerMemoryRepository(event: H3Event): MemoryRepository {
 
 export function getFilesystemMemoryRepository(event: H3Event): FilesystemMemoryRepository {
   const config = useRuntimeConfig(event)
-  if (getMemoryRepositoryMode(config) !== 'filesystem') throw createError({ statusCode: 409, statusMessage: 'Memory editing requires filesystem mode' })
+  if (getMemoryRepositoryMode(config) !== 'filesystem') throw publicRepositoryError(409, 'Memory creation requires filesystem mode', 'REPOSITORY_READ_ONLY')
   if (!config.archiveDir) throw createError({ statusCode: 500, statusMessage: 'Archive directory is not configured' })
   return createFilesystemMemoryRepository(String(config.archiveDir))
 }
@@ -33,10 +33,19 @@ export async function withRepositoryErrors<T>(operation: () => Promise<T>): Prom
   try {
     return await operation()
   } catch (error: unknown) {
-    if (error instanceof MemoryConflictError) throw createError({ statusCode: 409, statusMessage: 'Memory changed externally', data: { code: 'MEMORY_CONFLICT' } })
-    if (error instanceof MemoryNotFoundError) throw createError({ statusCode: 404, statusMessage: 'Memory not found' })
-    if (error instanceof InvalidMemoryDateError || error instanceof InvalidMemoryMetadataError || error instanceof MediaValidationError || error instanceof ArchivePathError) throw createError({ statusCode: 400, statusMessage: 'Invalid memory request' })
-    if (error instanceof ArchiveUnavailableError || error instanceof InvalidArchiveConfigurationError) throw createError({ statusCode: 500, statusMessage: 'Archive is unavailable' })
-    throw error
+    console.error('[life-archive] repository request failed', error)
+    if (error instanceof MemoryConflictError) throw publicRepositoryError(409, 'Memory changed externally', 'MEMORY_CONFLICT')
+    if (error instanceof MemoryNotFoundError) throw publicRepositoryError(404, 'Memory not found', 'MEMORY_NOT_FOUND')
+    if (error instanceof InvalidMemoryDateError) throw publicRepositoryError(400, 'The memory date is invalid', 'INVALID_MEMORY_DATE', 'date')
+    if (error instanceof InvalidMemoryMetadataError) throw publicRepositoryError(400, 'Memory metadata is invalid. Check the title, type, tags, mood, and location fields.', 'INVALID_MEMORY_METADATA')
+    if (error instanceof ArchivePathError) throw publicRepositoryError(400, 'The requested archive path is not allowed', 'INVALID_ARCHIVE_PATH')
+    if (error instanceof ArchiveUnavailableError || error instanceof InvalidArchiveConfigurationError) throw publicRepositoryError(500, 'Archive is unavailable', 'ARCHIVE_UNAVAILABLE')
+    throw publicRepositoryError(500, 'The memory could not be persisted', 'MEMORY_PERSISTENCE_FAILED')
   }
+}
+
+function publicRepositoryError(statusCode: number, statusMessage: string, code: string, field?: string) {
+  const error = createError({ statusCode, statusMessage, data: { code, ...(field ? { field } : {}) } })
+  error.stack = undefined
+  return error
 }

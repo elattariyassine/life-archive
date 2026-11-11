@@ -1,23 +1,23 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { createApiMemoryRepository } from './api-memory-repository'
 
-describe('API memory repository media uploads', () => {
-  it('sends the actual file and expected version in multipart FormData', async () => {
-    const calls: Array<{ path: string; options?: { body?: BodyInit | Record<string, any> | null } }> = []
-    const request = async <T>(path: string, options?: { body?: BodyInit | Record<string, any> | null }) => {
-      calls.push({ path, options })
-      return { media: { src: '/api/archive-media/2026-12-06/photo.png', path: 'photo.png', alt: 'photo' } } as T
-    }
+describe('API memory repository', () => {
+  it('creates a memory with metadata and does not send Markdown content', async () => {
+    const request = vi.fn().mockResolvedValue({ memory: { date: '2026-12-01', title: 'A day', type: 'highlight', tags: [], content: '# What happened', media: [] } })
     const repository = createApiMemoryRepository(request)
-    const file = new File([new Uint8Array([1, 2, 3])], 'photo.png', { type: 'image/png' })
+    const input = { date: '2026-12-01', title: 'A day', type: 'highlight' as const, tags: [], location: 'Home' }
 
-    await repository.uploadMedia('2026-12-06', file, 'expected-version')
+    await repository.createMemory(input)
 
-    expect(calls[0]?.path).toBe('/api/memories/2026-12-06/media')
-    expect(calls[0]?.options?.body).toBeInstanceOf(FormData)
-    const formData = calls[0]?.options?.body as FormData
-    expect(formData.get('file')).toBeInstanceOf(File)
-    expect((formData.get('file') as File).name).toBe('photo.png')
-    expect(formData.get('expectedVersion')).toBe('expected-version')
+    expect(request).toHaveBeenCalledWith('/api/memories', { method: 'POST', body: input })
+  })
+
+  it('deletes a memory using its expected version', async () => {
+    const request = vi.fn().mockResolvedValue({ deleted: true })
+    const repository = createApiMemoryRepository(request)
+
+    await repository.deleteMemory('2026-12-01', 'version')
+
+    expect(request).toHaveBeenCalledWith('/api/memories/2026-12-01', { method: 'DELETE', body: { expectedVersion: 'version' } })
   })
 })
