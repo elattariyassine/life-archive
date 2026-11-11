@@ -19,7 +19,10 @@ const navigation = [
           <span>{{ item.label }}</span>
         </NuxtLink>
       </nav>
-      <div class="header-note">A personal record<br>of ordinary days</div>
+      <div class="header-tools">
+        <NuxtLink to="/memory/new" class="new-memory-link">New memory <AppIcon name="arrow-up-right" /></NuxtLink>
+        <div class="header-note">A personal record<br>of ordinary days</div>
+      </div>
     </div>
   </header>
 </template>

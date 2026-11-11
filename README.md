@@ -41,14 +41,14 @@ life-archive-data/
                 └── photo-01.jpg
 ```
 
-The server reads `index.md` frontmatter and Markdown content, scans the adjacent `media/` directory, and returns normalized `Memory` objects. Markdown and original media remain the source of truth. This phase does not write, watch, upload, or modify archive files.
+The server reads `index.md` frontmatter and Markdown content, scans the adjacent `media/` directory, and returns normalized `Memory` objects. Markdown and original media remain the source of truth. Editing is available only in filesystem mode; the sample repository remains read-only. There is still no file watching, backup, or synchronization.
 
 ## Project structure
 
 ```text
 app/
 ├── assets/css/main.css       # Design tokens and responsive editorial UI
-├── components/               # Shell, navigation, cards, metadata, timeline entries
+├── components/               # Shell, navigation, cards, timeline entries, editor
 ├── composables/              # Repository access used by pages
 ├── data/fixtures.ts          # Realistic sample memories for the MVP
 ├── pages/                    # Home, timeline, detail, gallery, settings
@@ -76,13 +76,27 @@ interface MemoryRepository {
 
 `app/repositories/memory-repository.ts` provides `createFixtureMemoryRepository()`. `server/repositories/filesystem-memory-repository.ts` provides `createFilesystemMemoryRepository()`. Pages call `useMemoryRepository()`, which talks to the server API and does not know how entries are loaded.
 
-The API surface is:
+The read API surface is:
 
 - `GET /api/memories` with optional `year` and `month` query parameters
 - `GET /api/memories/YYYY-MM-DD`
 - `GET /api/archive-media/YYYY-MM-DD/<media-path>` for validated filesystem media
 
-Missing archive roots return an empty list. Invalid or malformed entries are skipped. Invalid dates and filters return a client error. API responses never include the configured absolute archive path.
+The write API surface is filesystem-only:
+
+- `POST /api/memories` to create a memory
+- `PUT /api/memories/YYYY-MM-DD` with `expectedVersion` to update a memory
+- `DELETE /api/memories/YYYY-MM-DD` with `expectedVersion` to delete a memory and its media
+- `POST /api/memories/YYYY-MM-DD/media` using multipart `file` and `expectedVersion` fields to upload media
+- `DELETE /api/memories/YYYY-MM-DD/media/<media-path>` with `expectedVersion` to remove media
+
+The editor is available at `/memory/new` and `/memory/YYYY-MM-DD/edit`. It provides structured metadata fields, a Markdown editor/preview toggle, staged media previews, media upload/removal, save/cancel behavior, and conflict reload messaging. A selected media file is sent as binary `FormData` when the memory is saved.
+
+Missing archive roots return an empty list for reads. Invalid or malformed entries are skipped. Invalid dates and filters return a client error. API responses never include the configured absolute archive path.
+
+Every filesystem read returns a SHA-256 `version` derived from the raw `index.md`. Updates and deletes require that version. If the Markdown file changed externally, the API returns `409 MEMORY_CONFLICT` and does not overwrite it. Markdown updates use a temporary file followed by an atomic rename. Creates and date moves use temporary directories; media uploads use temporary files with no-overwrite linking.
+
+Uploads are limited to 10 MB and these types: JPEG, PNG, GIF, WebP, AVIF, MP4, and WebM. Filenames must be simple archive-local names; paths, symlinks, and unsupported extensions are rejected. Uploading writes the binary file and a relative `./media/<filename>` Markdown reference together; removing media removes both. Existing names are never overwritten.
 
 Markdown remains the source of truth. `fixtures/archive/` shows the intended folder and frontmatter shape without placing a personal archive inside the application repository. The TypeScript fixture data is only the temporary sample implementation for this phase.
 
@@ -105,4 +119,4 @@ Nuxt Content 3.16.2 still reads the project's `content/` directory. Nuxt Studio 
 
 ## Tests
 
-`server/repositories/filesystem-memory-repository.test.ts` covers valid Markdown, chronological ordering, year/month filters, nonexistent dates, invalid dates, malformed Markdown, missing media, missing archive directories, and path traversal attempts.
+`server/repositories/filesystem-memory-repository.test.ts` covers valid Markdown, chronological ordering, year/month filters, create/update/delete, upload/removal, physical media persistence after reload, nonexistent dates, invalid metadata, invalid uploads, malformed Markdown, missing media, missing archive directories, version conflicts, path traversal, duplicate-name protection, symlink escapes, and atomic write cleanup. `app/repositories/api-memory-repository.test.ts` verifies that media uploads send the actual file through `FormData`.

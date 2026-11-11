@@ -18,8 +18,14 @@ const mimeTypes: Record<string, string> = {
 
 export default defineEventHandler(async (event) => {
   const date = getRouterParam(event, 'date') || ''
-  const mediaPath = getRouterParam(event, 'path') || ''
+  const rawPath = getRouterParam(event, 'path') || ''
   assertRequestDate(date)
+  let mediaPath: string
+  try {
+    mediaPath = rawPath.split('/').map(decodeURIComponent).join('/')
+  } catch {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid media path' })
+  }
   const config = useRuntimeConfig(event)
   if (getMemoryRepositoryMode(config) !== 'filesystem' || !config.archiveDir) throw createError({ statusCode: 404, statusMessage: 'Media not found' })
   const filePath = await resolveArchiveMediaPath(String(config.archiveDir), date, mediaPath)

@@ -3,7 +3,7 @@ import { formatMemoryDate, formatType } from '~/utils/memory'
 
 const route = useRoute()
 const repository = useMemoryRepository()
-const { data: memory } = await useAsyncData(`memory-${route.params.date}`, () => repository.getMemoryByDate(String(route.params.date)))
+const { data: memory, refresh } = await useAsyncData(`memory-${route.params.date}`, () => repository.getMemoryByDate(String(route.params.date)))
 const { data: allMemories } = await useAsyncData('memory-navigation', () => repository.getMemories())
 
 if (!memory.value) {
@@ -13,6 +13,24 @@ if (!memory.value) {
 const currentIndex = computed(() => allMemories.value?.findIndex(item => item.date === memory.value?.date) ?? -1)
 const newerMemory = computed(() => currentIndex.value > 0 ? allMemories.value?.[currentIndex.value - 1] : undefined)
 const olderMemory = computed(() => currentIndex.value >= 0 ? allMemories.value?.[currentIndex.value + 1] : undefined)
+const deleteError = ref('')
+const deleting = ref(false)
+
+const deleteMemory = async () => {
+  if (!memory.value || !window.confirm(`Delete “${memory.value.title}”? This also removes its media.`)) return
+  deleting.value = true
+  deleteError.value = ''
+  try {
+    await repository.deleteMemory(memory.value.date, memory.value.version || '')
+    await navigateTo('/timeline')
+  } catch (error: unknown) {
+    deleteError.value = error && typeof error === 'object' && 'statusCode' in error && error.statusCode === 409
+      ? 'This memory changed outside Life Archive. Reload it before deleting.'
+      : 'The memory could not be deleted.'
+  } finally {
+    deleting.value = false
+  }
+}
 
 useSeoMeta({
   title: () => memory.value ? `${memory.value.title} / Life Archive` : 'Memory / Life Archive',
@@ -27,6 +45,11 @@ useSeoMeta({
       <div class="memory-header-meta"><MemoryMeta :memory="memory" /><span v-if="memory.location" class="location-meta"><AppIcon name="map-pin" />{{ memory.location }}</span></div>
       <h1>{{ memory.title }}</h1>
       <p class="memory-lede">{{ memory.excerpt }}</p>
+      <div class="memory-actions">
+        <NuxtLink :to="`/memory/${memory.date}/edit`" class="text-link">Edit memory <AppIcon name="arrow-up-right" /></NuxtLink>
+        <button type="button" class="text-link text-link--danger" :disabled="deleting" @click="deleteMemory">{{ deleting ? 'Deleting...' : 'Delete memory' }}</button>
+      </div>
+      <div v-if="deleteError" class="detail-message" role="alert"><span>{{ deleteError }}</span><button type="button" class="text-link" @click="refresh()">Reload memory <AppIcon name="arrow-right" /></button></div>
     </header>
 
     <div class="memory-layout">
