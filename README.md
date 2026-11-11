@@ -64,7 +64,7 @@ server/utils/                 # Runtime repository selection and query validatio
 
 ## Data architecture
 
-The UI depends on this contract, not on Markdown, Nuxt Content, or a database:
+The UI depends on this contract, not on the filesystem format, Nuxt Content's data layer, or a database:
 
 ```ts
 interface MemoryRepository {
@@ -102,22 +102,19 @@ Opening VS Code depends on the browser and operating system recognizing the `vsc
 
 Markdown remains the source of truth. `fixtures/archive/2026/11/10/` is a complete demonstration entry with all metadata, multiple relative image references, an audio file, a video, and a PDF in its `media/` directory. Point `NUXT_ARCHIVE_DIR` at `fixtures/archive/` to inspect the same filesystem workflow locally. The TypeScript fixture data is only the temporary sample implementation for this phase.
 
-## Nuxt Content and Nuxt Studio boundary
+## Markdown rendering boundary
 
 Installed versions:
 
 - `@nuxt/content` `3.16.2`
-- `nuxt-studio` `1.8.0` (installed, not enabled in the current config)
 
-Nuxt Content documents that it reads the project's `content/` directory into its content data layer. Nuxt Studio's local editing mode writes files in that same `content/` directory. Studio's production publishing flow targets a configured GitHub or GitLab repository and supports a repository `rootDir` for a subdirectory, not an arbitrary filesystem path outside the application project.
+The app uses Nuxt Content's `<MDC>` component only to render Markdown content returned by the memory repository. It does not use Nuxt Content collections or the project's `content/` directory. The external archive remains owned by the filesystem repository and is never passed to Nuxt Content as a data source.
 
-Because the personal archive is intentionally a separate local repository, this MVP does not register Studio or pretend that an external directory is supported. Enabling it against the wrong directory would make the public app's content folder, rather than the archive, the editable source.
-
-## Security and Nuxt Content boundary
+## Security boundary
 
 Dates are strictly validated before path resolution. Filesystem media paths are resolved with `realpath` and must remain inside both the archive root and the requested date's `media/` directory. No API parameter accepts an arbitrary filesystem path. The resolved memory folder path is returned only to support the local external-editor actions.
 
-Nuxt Content 3.16.2 still reads the project's `content/` directory. Nuxt Studio 1.8.0 edits that same directory and is not enabled here. The external archive is intentionally handled by the server adapter instead of being passed to Nuxt Content or Studio.
+The external archive is intentionally handled by the server adapter instead of being registered as a Nuxt Content collection. The renderer receives only the normalized Markdown content for the requested memory.
 
 ## Tests
 
