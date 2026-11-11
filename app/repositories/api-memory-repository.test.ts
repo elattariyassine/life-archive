@@ -20,4 +20,13 @@ describe('API memory repository', () => {
 
     expect(request).toHaveBeenCalledWith('/api/memories/2026-12-01', { method: 'DELETE', body: { expectedVersion: 'version' } })
   })
+
+  it('searches with the query and combined filters', async () => {
+    const request = vi.fn().mockResolvedValue({ results: [] })
+    const repository = createApiMemoryRepository(request)
+
+    await repository.searchMemories({ query: 'mor', year: 2026, type: 'travel' })
+
+    expect(request).toHaveBeenCalledWith('/api/search', { query: { q: 'mor', year: 2026, type: 'travel' } })
+  })
 })

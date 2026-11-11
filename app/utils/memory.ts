@@ -22,6 +22,10 @@ export const getMemoryMonth = (date: string) => date.slice(0, 7)
 
 export const formatType = (type: MemoryType) => type.charAt(0).toUpperCase() + type.slice(1)
 
+const imagePattern = /\.(avif|gif|heic|jpe?g|png|svg|webp)(?:[?#]|$)/i
+
+export const getMemoryImages = (memory: Pick<Memory, 'media'>) => memory.media.filter(media => media.kind === 'image' || (!media.kind && imagePattern.test(media.path || media.src)))
+
 export const groupMemoriesByYear = (memories: Memory[]) => {
   return memories.reduce<Record<number, Memory[]>>((groups, memory) => {
     const year = getMemoryYear(memory.date)

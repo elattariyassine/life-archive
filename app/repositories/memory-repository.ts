@@ -9,6 +9,7 @@ export function createFixtureMemoryRepository(memories: Memory[] = fixtureMemori
       return sortByDate(memories.filter((memory) => {
         if (filters?.year && !memory.date.startsWith(`${filters.year}-`)) return false
         if (filters?.month && memory.date.slice(5, 7) !== String(filters.month).padStart(2, '0')) return false
+        if (filters?.type && memory.type !== filters.type) return false
         return true
       }))
     },

@@ -51,7 +51,7 @@ const copyPath = async () => {
       <span v-else class="muted-copy">Filesystem path unavailable in sample mode.</span>
     </div>
     <div class="external-editing-actions">
-      <a v-if="vscodeUri" :href="vscodeUri" class="button button--dark">Open in VS Code <AppIcon name="arrow-up-right" /></a>
+      <a v-if="vscodeUri" :href="vscodeUri" class="button button--dark">Open in VS Code <Icon name="lucide:arrow-up-right" class="app-icon" /></a>
       <button type="button" class="button button--outline" :disabled="!folderPath" @click="copyPath">{{ copied ? 'Copied' : 'Copy path' }}</button>
     </div>
     <p v-if="folderPath" class="external-editing-hint">If your browser does not open VS Code, use Copy path and open the folder manually.</p>

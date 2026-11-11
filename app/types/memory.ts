@@ -40,6 +40,25 @@ export interface Memory {
 export interface MemoryFilters {
   year?: number
   month?: number
+  type?: MemoryType
+}
+
+export type MemorySearchMatch = 'title' | 'content' | 'tag' | 'location'
+
+export interface MemorySearchFilters {
+  query: string
+  year?: number
+  type?: MemoryType
+}
+
+export interface MemorySearchResult {
+  memory: Pick<Memory, 'date' | 'title' | 'type' | 'tags' | 'location'>
+  matches: MemorySearchMatch[]
+  excerpt: string
+}
+
+export interface MemorySearchRepository {
+  searchMemories(filters: MemorySearchFilters): Promise<MemorySearchResult[]>
 }
 
 export interface MemoryCreateInput {

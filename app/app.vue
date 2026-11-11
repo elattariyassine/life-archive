@@ -13,7 +13,7 @@ const currentYear = new Date().getFullYear()
       <div class="footer-inner">
         <span>Life Archive / {{ currentYear }}</span>
         <span>Made to remember, not to perform.</span>
-        <NuxtLink to="/settings">Archive settings <AppIcon name="arrow-up-right" /></NuxtLink>
+        <NuxtLink to="/settings">Archive settings <Icon name="lucide:arrow-up-right" class="app-icon" /></NuxtLink>
       </div>
     </footer>
   </div>

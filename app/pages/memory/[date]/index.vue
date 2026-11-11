@@ -3,7 +3,7 @@ import { formatMemoryDate, formatType } from '~/utils/memory'
 
 const route = useRoute()
 const repository = useMemoryRepository()
-const { data: memory, refresh } = await useAsyncData(`memory-${route.params.date}`, () => repository.getMemoryByDate(String(route.params.date)), { getCachedData: () => undefined })
+const { data: memory, refresh } = await useAsyncData(`memory-${route.params.date}`, () => repository.getMemoryByDate(String(route.params.date)))
 const { data: allMemories } = await useAsyncData('memory-navigation', () => repository.getMemories())
 
 if (!memory.value) {
@@ -40,15 +40,15 @@ useSeoMeta({
 
 <template>
   <div v-if="memory" class="page memory-page page-container">
-    <NuxtLink to="/timeline" class="back-link"><AppIcon name="arrow-right" /> Back to timeline</NuxtLink>
+    <NuxtLink to="/timeline" class="back-link"><Icon name="lucide:arrow-right" class="app-icon" /> Back to timeline</NuxtLink>
     <header class="memory-header">
-      <div class="memory-header-meta"><MemoryMeta :memory="memory" /><span v-if="memory.location" class="location-meta"><AppIcon name="map-pin" />{{ memory.location }}</span></div>
+      <div class="memory-header-meta"><MemoryMeta :memory="memory" /><span v-if="memory.location" class="location-meta"><Icon name="lucide:map-pin" class="app-icon" />{{ memory.location }}</span></div>
       <h1>{{ memory.title }}</h1>
       <p class="memory-lede">{{ memory.excerpt }}</p>
        <div class="memory-actions">
          <button type="button" class="text-link text-link--danger" :disabled="deleting" @click="deleteMemory">{{ deleting ? 'Deleting...' : 'Delete memory' }}</button>
        </div>
-      <div v-if="deleteError" class="detail-message" role="alert"><span>{{ deleteError }}</span><button type="button" class="text-link" @click="refresh()">Reload memory <AppIcon name="arrow-right" /></button></div>
+     <div v-if="deleteError" class="detail-message" role="alert"><span>{{ deleteError }}</span><button type="button" class="text-link" @click="refresh()">Reload memory <Icon name="lucide:arrow-right" class="app-icon" /></button></div>
     </header>
 
     <div class="memory-layout">
@@ -56,7 +56,7 @@ useSeoMeta({
         <div v-if="memory.mood" class="detail-fact"><span class="fact-label">Mood</span><strong>{{ memory.mood.label }}</strong><span class="mood-scale"><span :style="{ width: `${memory.mood.score * 10}%` }" /></span><small>{{ memory.mood.score }} / 10</small></div>
         <div class="detail-fact"><span class="fact-label">Type</span><strong>{{ formatType(memory.type) }}</strong></div>
         <div v-if="memory.tags.length" class="detail-fact"><span class="fact-label">Filed under</span><div class="tag-list"><span v-for="tag in memory.tags" :key="tag">{{ tag }}</span></div></div>
-         <div v-if="memory.music" class="music-note"><span class="fact-label"><AppIcon name="music" /> On repeat</span><strong>{{ memory.music.title }}</strong><span>{{ memory.music.artist }}</span><a :href="memory.music.url" target="_blank" rel="noreferrer">Listen <AppIcon name="arrow-up-right" /></a></div>
+         <div v-if="memory.music" class="music-note"><span class="fact-label"><Icon name="lucide:music-2" class="app-icon" /> On repeat</span><strong>{{ memory.music.title }}</strong><span>{{ memory.music.artist }}</span><a :href="memory.music.url" target="_blank" rel="noreferrer">Listen <Icon name="lucide:arrow-up-right" class="app-icon" /></a></div>
          <div v-if="memory.media.length" class="detail-fact"><span class="fact-label">Media folder</span><strong>{{ memory.media.length }} {{ memory.media.length === 1 ? 'file' : 'files' }}</strong><span>Managed outside Life Archive</span></div>
        </aside>
        <article class="memory-content">

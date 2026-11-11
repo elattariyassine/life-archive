@@ -31,11 +31,11 @@ const createMemory = async (input: MemoryCreateInput) => {
   <MemoryCreationForm v-if="!created" :busy="busy" :error="error" @save="createMemory" @cancel="navigateTo('/timeline')" />
 
   <main v-else class="creation-success page-container">
-    <NuxtLink to="/timeline" class="back-link"><AppIcon name="arrow-right" /> Back to timeline</NuxtLink>
+    <NuxtLink to="/timeline" class="back-link"><Icon name="lucide:arrow-right" class="app-icon" /> Back to timeline</NuxtLink>
     <p class="eyebrow">A new page / 04</p>
     <h1>Memory created</h1>
     <p class="creation-success-lede"><strong>{{ created.title }}</strong> is ready for {{ created.date }}. Continue in your preferred editor, then return here to read it.</p>
     <ExternalEditingActions :folder-path="created.folderPath" />
-    <NuxtLink :to="`/memory/${created.date}`" class="text-link">Read this memory <AppIcon name="arrow-up-right" /></NuxtLink>
+    <NuxtLink :to="`/memory/${created.date}`" class="text-link">Read this memory <Icon name="lucide:arrow-up-right" class="app-icon" /></NuxtLink>
   </main>
 </template>

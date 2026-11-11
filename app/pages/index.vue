@@ -20,7 +20,7 @@ const latestArchiveDate = computed(() => allMemories.value[0]?.date ?? `${curren
         <p class="eyebrow">A private collection / est. 2025</p>
         <h1>A place for the<br><em>days that matter.</em></h1>
         <p class="hero-intro">Life Archive is a quiet record of the people, places, thoughts and ordinary details that make a life feel like a life.</p>
-        <NuxtLink to="/timeline" class="button button--dark">Explore the archive <AppIcon name="arrow-right" /></NuxtLink>
+        <NuxtLink to="/timeline" class="button button--dark">Explore the archive <Icon name="lucide:arrow-right" class="app-icon" /></NuxtLink>
       </div>
       <div class="hero-aside">
         <div class="hero-stamp" aria-hidden="true">LA<br><span>01</span></div>
@@ -37,7 +37,7 @@ const latestArchiveDate = computed(() => allMemories.value[0]?.date ?? `${curren
         <div>
           <p class="section-lead">The archive is growing slowly. That is part of the point.</p>
           <p class="muted-copy">{{ currentYearMemories.length }} memories from this year, each one a small way of paying attention. Come back whenever you need to remember where you have been.</p>
-          <NuxtLink to="/timeline" class="text-link text-link--large">View the full timeline <AppIcon name="arrow-right" /></NuxtLink>
+          <NuxtLink to="/timeline" class="text-link text-link--large">View the full timeline <Icon name="lucide:arrow-right" class="app-icon" /></NuxtLink>
         </div>
       </div>
     </section>
@@ -45,7 +45,7 @@ const latestArchiveDate = computed(() => allMemories.value[0]?.date ?? `${curren
     <section class="home-recent page-container section-divider">
       <div class="section-heading-row">
         <div><div class="section-label">02 <span>Recent memories</span></div><h2>Just before now</h2></div>
-        <NuxtLink to="/timeline" class="text-link">See all memories <AppIcon name="arrow-up-right" /></NuxtLink>
+          <NuxtLink to="/timeline" class="text-link">See all memories <Icon name="lucide:arrow-up-right" class="app-icon" /></NuxtLink>
       </div>
       <div class="recent-grid">
         <MemoryCard v-for="memory in recentMemories" :key="memory.date" :memory="memory" />
@@ -67,14 +67,14 @@ const latestArchiveDate = computed(() => allMemories.value[0]?.date ?? `${curren
     <section class="home-chronology page-container section-divider">
       <div class="section-heading-row">
         <div><div class="section-label">04 <span>A way through time</span></div><h2>From the archive</h2></div>
-        <NuxtLink to="/timeline" class="text-link">Open timeline <AppIcon name="arrow-right" /></NuxtLink>
+          <NuxtLink to="/timeline" class="text-link">Open timeline <Icon name="lucide:arrow-right" class="app-icon" /></NuxtLink>
       </div>
       <div class="chronology-list">
         <NuxtLink v-for="memory in allMemories.slice(0, 5)" :key="memory.date" :to="`/memory/${memory.date}`" class="chronology-row">
           <time :datetime="memory.date">{{ memory.date }}</time>
           <span class="chronology-title">{{ memory.title }}</span>
           <span class="chronology-type">{{ formatType(memory.type) }}</span>
-          <AppIcon name="arrow-up-right" />
+          <Icon name="lucide:arrow-up-right" class="app-icon" />
         </NuxtLink>
       </div>
     </section>
@@ -83,7 +83,7 @@ const latestArchiveDate = computed(() => allMemories.value[0]?.date ?? `${curren
       <div class="cta-mark" aria-hidden="true">✳</div>
       <h2>Keep the<br><em>good parts.</em></h2>
       <p>There is always more to remember.</p>
-      <NuxtLink to="/timeline" class="button button--outline">Browse the archive <AppIcon name="arrow-right" /></NuxtLink>
+      <NuxtLink to="/timeline" class="button button--outline">Browse the archive <Icon name="lucide:arrow-right" class="app-icon" /></NuxtLink>
     </section>
   </div>
 </template>

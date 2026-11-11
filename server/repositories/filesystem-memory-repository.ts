@@ -353,7 +353,7 @@ export function createFilesystemMemoryRepository(archiveRoot: string): Filesyste
       const root = await getRealArchiveRoot(archiveRoot)
       if (!root) return []
       const memories: Memory[] = []
-      for (const yearEntry of await readDirectory(root)) {
+        for (const yearEntry of await readDirectory(root)) {
         if (!yearEntry.isDirectory() || !YEAR_PATTERN.test(yearEntry.name)) continue
         if (filters?.year !== undefined && Number(yearEntry.name) !== filters.year) continue
         for (const monthEntry of await readDirectory(join(root, yearEntry.name))) {
@@ -364,7 +364,7 @@ export function createFilesystemMemoryRepository(archiveRoot: string): Filesyste
             const date = `${yearEntry.name}-${monthEntry.name}-${dayEntry.name}`
             if (!isValidMemoryDate(date)) continue
             const record = await readMemoryRecordAtDate(root, date)
-            if (record) memories.push(record.memory)
+            if (record && (filters?.type === undefined || record.memory.type === filters.type)) memories.push(record.memory)
           }
         }
       }

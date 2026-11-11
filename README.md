@@ -80,6 +80,7 @@ The read API surface is:
 
 - `GET /api/memories` with optional `year` and `month` query parameters
 - `GET /api/memories/YYYY-MM-DD`
+- `GET /api/search?q=<query>` with optional `year` and `type` filters
 - `GET /api/archive-media/YYYY-MM-DD/<media-path>` for validated filesystem media
 
 The write API surface is filesystem-only:
@@ -88,6 +89,8 @@ The write API surface is filesystem-only:
 - `DELETE /api/memories/YYYY-MM-DD` with `expectedVersion` to delete a memory and its media
 
 The creation form at `/memory/new` collects the date, title, type, location, mood, and tags. On success it creates `YYYY/MM/DD/index.md` with YAML frontmatter, creates the adjacent `media/` directory, and writes a minimal `# What happened` body. The success state and every filesystem-backed detail page provide the archive folder path, an `Open in VS Code` action using the registered `vscode://file/...` URI handler, and a `Copy path` fallback. Life Archive does not edit Markdown or upload media.
+
+The search page at `/search` searches titles, Markdown body text, tags, and locations with case-insensitive partial matching. Results are read from the current repository on every search, ordered newest first, and can be narrowed by year and memory type. Markdown formatting is removed for body matching and result excerpts.
 
 Missing archive roots return an empty list for reads. Invalid or malformed entries are skipped. Invalid dates and filters return a client error. Filesystem-backed memory responses include the resolved memory folder path so the local UI can offer external editing actions; the server never accepts that path as an API input.
 

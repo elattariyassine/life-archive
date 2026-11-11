@@ -63,14 +63,14 @@ const submit = () => {
   <form class="creation-form" @submit.prevent="submit">
     <header class="creation-header page-container">
       <div>
-        <NuxtLink to="/timeline" class="back-link"><AppIcon name="arrow-right" /> Back to timeline</NuxtLink>
+        <NuxtLink to="/timeline" class="back-link"><Icon name="lucide:arrow-right" class="app-icon" /> Back to timeline</NuxtLink>
         <p class="eyebrow">A new page / 04</p>
         <h1>New memory</h1>
         <p class="page-intro-copy">Give the moment enough shape to find it again later. You can write the story in your preferred editor after creating it.</p>
       </div>
       <div class="creation-actions">
         <button type="button" class="button button--outline" :disabled="busy" @click="emit('cancel')">Cancel</button>
-        <button type="submit" class="button button--dark" :disabled="busy">{{ busy ? 'Creating...' : 'Create memory' }} <AppIcon name="arrow-right" /></button>
+        <button type="submit" class="button button--dark" :disabled="busy">{{ busy ? 'Creating...' : 'Create memory' }} <Icon name="lucide:arrow-right" class="app-icon" /></button>
       </div>
     </header>
 
