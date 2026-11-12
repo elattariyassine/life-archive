@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const props = defineProps<{
   folderPath?: string
+  quiet?: boolean
 }>()
 
 const copied = ref(false)
@@ -39,7 +40,7 @@ const copyPath = async () => {
 </script>
 
 <template>
-  <section class="external-editing" aria-labelledby="external-editing-heading">
+  <section class="external-editing" :class="{ 'external-editing--quiet': props.quiet }" aria-labelledby="external-editing-heading">
     <div class="external-editing-copy">
       <span class="fact-label">Continue elsewhere</span>
       <h2 id="external-editing-heading">Write in your own tools</h2>

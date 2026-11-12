@@ -7,7 +7,7 @@ const images = computed(() => getMemoryImages(props.memory))
 </script>
 
 <template>
-  <article class="memory-card" :class="{ 'memory-card--featured': featured }">
+  <article class="memory-card" :class="{ 'memory-card--featured': featured, 'memory-card--text-only': !images.length }">
     <NuxtLink :to="`/memory/${memory.date}`" class="memory-card-link">
       <div class="memory-card-image-wrap" :class="{ 'media-placeholder': !images.length }">
         <img v-if="images[0]" :src="images[0].src" :alt="images[0].alt" class="memory-card-image" loading="lazy" decoding="async">

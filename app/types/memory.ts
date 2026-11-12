@@ -43,7 +43,7 @@ export interface MemoryFilters {
   type?: MemoryType
 }
 
-export type MemorySearchMatch = 'title' | 'content' | 'tag' | 'location'
+export type MemorySearchMatch = 'title' | 'content' | 'tag' | 'location' | 'type' | 'date'
 
 export interface MemorySearchFilters {
   query: string
@@ -52,7 +52,7 @@ export interface MemorySearchFilters {
 }
 
 export interface MemorySearchResult {
-  memory: Pick<Memory, 'date' | 'title' | 'type' | 'tags' | 'location'>
+  memory: Pick<Memory, 'date' | 'title' | 'type' | 'tags' | 'location' | 'media'>
   matches: MemorySearchMatch[]
   excerpt: string
 }

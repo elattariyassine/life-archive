@@ -38,6 +38,21 @@ describe('memory search', () => {
     expect(stripMarkdown('## A title\n\n![Photo](./media/photo.jpg) [Read](./notes.pdf) **attention**')).toBe('A title Photo Read attention')
     expect(result[0]?.matches).toEqual(['content'])
     expect(result[0]?.excerpt).toContain('attention')
+    expect(result[0]?.excerpt).not.toContain('What happened')
+  })
+
+  it('matches type and date and carries representative media into results', () => {
+    const result = memory({
+      date: '2025-08-15',
+      type: 'travel',
+      media: [{ src: '/media/coast.jpg', alt: 'The coast', kind: 'image' }]
+    })
+
+    expect(searchMemories([result], 'trav')[0]).toMatchObject({
+      matches: ['type'],
+      memory: { media: result.media }
+    })
+    expect(searchMemories([result], '2025-08')[0]?.matches).toContain('date')
   })
 
   it('returns newest matches first and handles empty and unmatched queries', () => {

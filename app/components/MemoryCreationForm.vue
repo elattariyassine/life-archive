@@ -2,10 +2,11 @@
 import { memoryTypes, type MemoryCreateInput, type MemoryType } from '~/types/memory'
 import { formatType } from '~/utils/memory'
 
-withDefaults(defineProps<{
+const props = withDefaults(defineProps<{
   busy?: boolean
   error?: string
-}>(), { busy: false, error: '' })
+  compact?: boolean
+}>(), { busy: false, error: '', compact: false })
 
 const emit = defineEmits<{
   save: [input: MemoryCreateInput]
@@ -60,8 +61,19 @@ const submit = () => {
 </script>
 
 <template>
-  <form class="creation-form" @submit.prevent="submit">
-    <header class="creation-header page-container">
+  <form class="creation-form" :class="{ 'creation-form--modal': props.compact }" @submit.prevent="submit">
+    <header v-if="props.compact" class="modal-form-heading">
+      <div>
+        <p class="eyebrow">Capture a page / N</p>
+        <h2 id="create-memory-modal-title">New memory</h2>
+        <p class="page-intro-copy">Give the moment enough shape to find it again later.</p>
+      </div>
+      <div class="creation-actions">
+        <button type="button" class="button button--outline" :disabled="busy" @click="emit('cancel')">Cancel</button>
+        <button type="submit" class="button button--dark" :disabled="busy">{{ busy ? 'Creating...' : 'Create memory' }} <Icon name="lucide:arrow-right" class="app-icon" /></button>
+      </div>
+    </header>
+    <header v-else class="creation-header page-container">
       <div>
         <NuxtLink to="/timeline" class="back-link"><Icon name="lucide:arrow-right" class="app-icon" /> Back to timeline</NuxtLink>
         <p class="eyebrow">A new page / 04</p>
@@ -74,9 +86,9 @@ const submit = () => {
       </div>
     </header>
 
-    <section class="creation-fields page-container" aria-labelledby="details-heading">
+    <section class="creation-fields page-container" :class="{ 'creation-fields--modal': props.compact }" aria-labelledby="details-heading">
       <div class="creation-section-heading"><span class="section-label">01 <span>Context</span></span><h2 id="details-heading">The details around it</h2></div>
-      <label class="creation-field creation-field--title"><span>Title</span><input v-model="form.title" type="text" maxlength="200" placeholder="Give the day a name" autocomplete="off"></label>
+      <label class="creation-field creation-field--title"><span>Title</span><input v-model="form.title" :data-modal-autofocus="props.compact ? true : undefined" type="text" maxlength="200" placeholder="Give the day a name" autocomplete="off"></label>
       <div class="creation-field-grid">
         <label class="creation-field"><span>Date</span><input v-model="form.date" type="date" required></label>
         <label class="creation-field"><span>Type</span><select v-model="form.type"><option v-for="type in memoryTypes" :key="type" :value="type">{{ formatType(type) }}</option></select></label>
@@ -89,7 +101,7 @@ const submit = () => {
       <label v-if="form.mood" class="creation-field creation-field--range"><span>Feeling <output>{{ form.moodScore }}/10</output></span><input v-model.number="form.moodScore" type="range" min="1" max="10"></label>
     </section>
 
-    <section class="creation-note page-container">
+    <section v-if="!props.compact" class="creation-note page-container">
       <strong>Write it elsewhere</strong>
       <p>Life Archive creates the folder, media directory, and a starting Markdown file. Add the story and media from VS Code, Obsidian, or Finder.</p>
     </section>

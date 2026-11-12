@@ -2,15 +2,23 @@
 import { formatMemoryDate, formatType, getMemoryYear } from '~/utils/memory'
 
 const repository = useMemoryRepository()
+const { openModal } = useGlobalModal()
 const { data: memories } = await useAsyncData('home-memories', () => repository.getMemories())
 const allMemories = computed(() => memories.value ?? [])
 const currentYear = new Date().getFullYear()
-const currentYearMemories = computed(() => allMemories.value.filter(memory => getMemoryYear(memory.date) === currentYear))
-const featuredMemories = computed(() => allMemories.value.filter(memory => memory.media.length > 0).slice(0, 3))
+const latestMemory = computed(() => allMemories.value[0])
+const latestArchiveDate = computed(() => latestMemory.value?.date)
+const latestArchiveYear = computed(() => latestArchiveDate.value ? getMemoryYear(latestArchiveDate.value) : currentYear)
+const latestArchiveMonthDate = computed(() => latestArchiveDate.value ? `${latestArchiveDate.value.slice(0, 7)}-01` : '')
+const latestYearMemories = computed(() => allMemories.value.filter(memory => getMemoryYear(memory.date) === latestArchiveYear.value))
+const latestMonthMemories = computed(() => {
+  const month = latestArchiveDate.value?.slice(0, 7)
+  return month ? allMemories.value.filter(memory => memory.date.startsWith(month)) : []
+})
+const featuredMemories = computed(() => allMemories.value.filter(memory => memory.type === 'highlight').slice(0, 3))
 const recentMemories = computed(() => allMemories.value.slice(0, 4))
 const archiveYears = computed(() => [...new Set(allMemories.value.map(memory => getMemoryYear(memory.date)))])
-const archiveSummary = computed(() => `${archiveYears.value.length} years of notes, photographs and small beginnings.`)
-const latestArchiveDate = computed(() => allMemories.value[0]?.date ?? `${currentYear}-01-01`)
+const archiveSummary = computed(() => allMemories.value.length ? `${allMemories.value.length} memories across ${archiveYears.value.length} ${archiveYears.value.length === 1 ? 'year' : 'years'}.` : 'No memories recorded yet.')
 </script>
 
 <template>
@@ -20,11 +28,11 @@ const latestArchiveDate = computed(() => allMemories.value[0]?.date ?? `${curren
         <p class="eyebrow">A private collection / est. 2025</p>
         <h1>A place for the<br><em>days that matter.</em></h1>
         <p class="hero-intro">Life Archive is a quiet record of the people, places, thoughts and ordinary details that make a life feel like a life.</p>
-        <NuxtLink to="/timeline" class="button button--dark">Explore the archive <Icon name="lucide:arrow-right" class="app-icon" /></NuxtLink>
+        <a href="#recent-memories" class="button button--dark">Read recent memories <Icon name="lucide:arrow-down" class="app-icon" /></a>
       </div>
       <div class="hero-aside">
         <div class="hero-stamp" aria-hidden="true">LA<br><span>01</span></div>
-        <p>Currently looking back from<br><strong>{{ currentYear }}</strong></p>
+        <p>Latest entry from<br><strong>{{ latestArchiveYear }}</strong></p>
         <div class="hero-line" />
         <p class="hero-small">{{ archiveSummary }}</p>
       </div>
@@ -32,17 +40,28 @@ const latestArchiveDate = computed(() => allMemories.value[0]?.date ?? `${curren
 
     <section class="home-intro page-container section-divider">
       <div class="section-label">01 <span>Now in the archive</span></div>
-      <div class="intro-grid">
-        <h2>{{ formatMemoryDate(latestArchiveDate, { month: 'long', year: 'numeric' }) }}</h2>
+      <div v-if="latestMemory" class="intro-grid">
         <div>
-          <p class="section-lead">The archive is growing slowly. That is part of the point.</p>
-          <p class="muted-copy">{{ currentYearMemories.length }} memories from this year, each one a small way of paying attention. Come back whenever you need to remember where you have been.</p>
+          <p class="fact-label">Latest recorded month</p>
+          <h2>{{ formatMemoryDate(latestArchiveMonthDate, { month: 'long', year: 'numeric' }) }}</h2>
+        </div>
+        <div>
+          <p class="section-lead">A current view of the collection.</p>
+          <div class="archive-stats" aria-label="Current archive overview">
+            <div><strong>{{ latestMonthMemories.length }}</strong><span>{{ latestMonthMemories.length === 1 ? 'memory' : 'memories' }} in this month</span></div>
+            <div><strong>{{ latestYearMemories.length }}</strong><span>{{ latestYearMemories.length === 1 ? 'memory' : 'memories' }} in {{ latestArchiveYear }}</span></div>
+            <div><strong>{{ formatMemoryDate(latestMemory.date, { month: 'short', day: 'numeric', year: 'numeric' }) }}</strong><span>latest recorded</span></div>
+          </div>
           <NuxtLink to="/timeline" class="text-link text-link--large">View the full timeline <Icon name="lucide:arrow-right" class="app-icon" /></NuxtLink>
         </div>
       </div>
+      <div v-else class="archive-empty">
+        <h2>The archive is waiting.</h2>
+        <p class="muted-copy">Add a memory to begin the collection.</p>
+      </div>
     </section>
 
-    <section class="home-recent page-container section-divider">
+    <section id="recent-memories" class="home-recent page-container section-divider">
       <div class="section-heading-row">
         <div><div class="section-label">02 <span>Recent memories</span></div><h2>Just before now</h2></div>
           <NuxtLink to="/timeline" class="text-link">See all memories <Icon name="lucide:arrow-up-right" class="app-icon" /></NuxtLink>
@@ -56,9 +75,9 @@ const latestArchiveDate = computed(() => allMemories.value[0]?.date ?? `${curren
       <div class="page-container">
         <div class="section-heading-row">
           <div><div class="section-label">03 <span>Selected moments</span></div><h2>Worth lingering over</h2></div>
-          <span class="muted-copy">A few frames from the collection</span>
+          <span class="muted-copy">Memories marked as highlights</span>
         </div>
-        <div class="featured-grid">
+        <div class="featured-grid" :class="`featured-grid--count-${featuredMemories.length}`">
           <MemoryCard v-for="(memory, index) in featuredMemories" :key="memory.date" :memory="memory" :featured="index === 0" />
         </div>
       </div>
@@ -67,11 +86,12 @@ const latestArchiveDate = computed(() => allMemories.value[0]?.date ?? `${curren
     <section class="home-chronology page-container section-divider">
       <div class="section-heading-row">
         <div><div class="section-label">04 <span>A way through time</span></div><h2>From the archive</h2></div>
-          <NuxtLink to="/timeline" class="text-link">Open timeline <Icon name="lucide:arrow-right" class="app-icon" /></NuxtLink>
+          <NuxtLink to="/timeline" class="text-link">Browse by year and month <Icon name="lucide:arrow-right" class="app-icon" /></NuxtLink>
       </div>
+      <div class="chronology-intro"><span>{{ archiveYears.length }} {{ archiveYears.length === 1 ? 'year' : 'years' }} represented</span><span>Most recent first</span></div>
       <div class="chronology-list">
         <NuxtLink v-for="memory in allMemories.slice(0, 5)" :key="memory.date" :to="`/memory/${memory.date}`" class="chronology-row">
-          <time :datetime="memory.date">{{ memory.date }}</time>
+          <time :datetime="memory.date">{{ formatMemoryDate(memory.date, { month: 'short', day: 'numeric', year: 'numeric' }) }}</time>
           <span class="chronology-title">{{ memory.title }}</span>
           <span class="chronology-type">{{ formatType(memory.type) }}</span>
           <Icon name="lucide:arrow-up-right" class="app-icon" />
@@ -81,9 +101,9 @@ const latestArchiveDate = computed(() => allMemories.value[0]?.date ?? `${curren
 
     <section class="home-cta page-container">
       <div class="cta-mark" aria-hidden="true">✳</div>
-      <h2>Keep the<br><em>good parts.</em></h2>
-      <p>There is always more to remember.</p>
-      <NuxtLink to="/timeline" class="button button--outline">Browse the archive <Icon name="lucide:arrow-right" class="app-icon" /></NuxtLink>
+      <h2>Find your way<br><em>back through it.</em></h2>
+      <p>Search titles, stories, tags, and places.</p>
+      <button type="button" class="button button--outline" data-global-trigger="search" @click="openModal('search')">Search the archive <Icon name="lucide:search" class="app-icon" /></button>
     </section>
   </div>
 </template>
