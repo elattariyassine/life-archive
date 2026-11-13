@@ -6,13 +6,18 @@ export default defineNuxtConfig({
       collections: ['lucide']
     }
   },
-  css: ['~/assets/css/main.css'],
+  css: ['maplibre-gl/dist/maplibre-gl.css', '~/assets/css/main.css'],
   devServer: {
     host: '127.0.0.1'
   },
   runtimeConfig: {
     archiveDir: '',
-    archiveRepository: ''
+    archiveRepository: '',
+    geocodingProvider: 'photon',
+    photonUrl: 'https://photon.komoot.io/api',
+    public: {
+      mapStyleUrl: 'https://tiles.openfreemap.org/styles/positron'
+    }
   },
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true }

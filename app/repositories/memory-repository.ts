@@ -1,9 +1,17 @@
 import { fixtureMemories } from '../data/fixtures'
+import type { MemoryMapFilters, MemoryMapPoint, MemoryMapRepository } from '../types/location-discovery'
 import type { Memory, MemoryFilters, MemoryRepository } from '../types/memory'
+import { hasValidMemoryCoordinates, matchesMemoryMapFilters } from '../utils/location-filters'
 
 const sortByDate = (memories: Memory[]) => [...memories].sort((a, b) => b.date.localeCompare(a.date))
 
-export function createFixtureMemoryRepository(memories: Memory[] = fixtureMemories): MemoryRepository {
+const toMapPoint = (memory: Memory): MemoryMapPoint | null => {
+  const location = memory.location
+  if (!hasValidMemoryCoordinates(location) || !location) return null
+  return { date: memory.date, title: memory.title, type: memory.type, mood: memory.mood, tags: memory.tags, location, media: memory.media }
+}
+
+export function createFixtureMemoryRepository(memories: Memory[] = fixtureMemories): MemoryRepository & MemoryMapRepository {
   return {
     async getMemories(filters?: MemoryFilters) {
       return sortByDate(memories.filter((memory) => {
@@ -18,6 +26,10 @@ export function createFixtureMemoryRepository(memories: Memory[] = fixtureMemori
     },
     async getMemoriesByYear(year) {
       return sortByDate(memories.filter(memory => memory.date.startsWith(`${year}-`)))
+    },
+    async getMemoryMapPoints(filters?: MemoryMapFilters) {
+      const points = memories.map(toMapPoint).filter((point): point is MemoryMapPoint => Boolean(point))
+      return points.filter(point => matchesMemoryMapFilters(point, filters))
     }
   }
 }

@@ -1,4 +1,5 @@
 import type { H3Event } from 'h3'
+import type { MemoryMapRepository } from '../../app/types/location-discovery'
 import type { MemoryRepository } from '../../app/types/memory'
 import { createFixtureMemoryRepository } from '../../app/repositories/memory-repository'
 import { ArchivePathError, ArchiveUnavailableError, InvalidArchiveConfigurationError, InvalidMemoryDateError, InvalidMemoryMetadataError, MemoryConflictError, MemoryNotFoundError, createFilesystemMemoryRepository, type FilesystemMemoryRepository } from '../repositories/filesystem-memory-repository'
@@ -20,6 +21,10 @@ export function getServerMemoryRepository(event: H3Event): MemoryRepository {
     return createFilesystemMemoryRepository(String(config.archiveDir))
   }
   throw createError({ statusCode: 500, statusMessage: 'Unsupported archive repository' })
+}
+
+export function getServerMemoryMapRepository(event: H3Event): MemoryMapRepository {
+  return getServerMemoryRepository(event) as unknown as MemoryMapRepository
 }
 
 export function getFilesystemMemoryRepository(event: H3Event): FilesystemMemoryRepository {

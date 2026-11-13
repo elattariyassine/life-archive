@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { memoryTypes, type MemoryCreateInput, type MemoryType } from '~/types/memory'
+import { memoryTypes, type MemoryCreateInput, type MemoryLocation, type MemoryType } from '~/types/memory'
 import { formatType } from '~/utils/memory'
 
 const props = withDefaults(defineProps<{
@@ -22,11 +22,11 @@ const form = reactive({
   date: today(),
   title: '',
   type: 'highlight' as MemoryType,
-  location: '',
   mood: '',
   moodScore: 7,
   tags: ''
 })
+const selectedLocation = ref<MemoryLocation | undefined>()
 const localError = ref('')
 
 const submit = () => {
@@ -53,7 +53,7 @@ const submit = () => {
     date: form.date,
     title: form.title.trim(),
     type: form.type,
-    location: form.location.trim() || undefined,
+    location: selectedLocation.value,
     mood: form.mood.trim() ? { label: form.mood.trim(), score: Number(form.moodScore) } : undefined,
     tags
   })
@@ -94,7 +94,7 @@ const submit = () => {
         <label class="creation-field"><span>Type</span><select v-model="form.type"><option v-for="type in memoryTypes" :key="type" :value="type">{{ formatType(type) }}</option></select></label>
       </div>
       <div class="creation-field-grid">
-        <label class="creation-field"><span>Location <small>Optional</small></span><input v-model="form.location" type="text" maxlength="200" placeholder="Where were you?"></label>
+        <div class="creation-field"><span>Location <small>Optional</small></span><MemoryLocationField v-model="selectedLocation" :disabled="busy" /></div>
         <label class="creation-field"><span>Mood <small>Optional</small></span><input v-model="form.mood" type="text" maxlength="50" placeholder="How did it feel?"></label>
       </div>
       <label class="creation-field"><span>Tags <small>Optional, separate with commas</small></span><input v-model="form.tags" type="text" placeholder="home, summer"></label>

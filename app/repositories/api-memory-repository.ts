@@ -37,6 +37,10 @@ export function createApiMemoryRepository(request: ApiRequest): MemoryRepository
       const response = await request<MemoryWriteResponse>('/api/memories', { method: 'POST', body: input })
       return response.memory
     },
+    async updateMemoryLocation(date, expectedVersion, location) {
+      const response = await request<MemoryWriteResponse>(`/api/memories/${encodeURIComponent(date)}/location`, { method: 'PATCH', body: { expectedVersion, location } })
+      return response.memory
+    },
     async deleteMemory(date, expectedVersion) {
       await request<MemoryDeleteResponse>(`/api/memories/${encodeURIComponent(date)}`, { method: 'DELETE', body: { expectedVersion } })
     }

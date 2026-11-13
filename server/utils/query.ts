@@ -1,3 +1,4 @@
+import { createError } from 'h3'
 import { isValidMemoryDate } from '../repositories/filesystem-memory-repository'
 import { memoryTypes, type MemoryType } from '../../app/types/memory'
 
@@ -28,6 +29,26 @@ export const parseSearchQuery = (value: unknown) => {
   const scalar = getScalarQueryValue(value)
   if (scalar === null || scalar.length > 200) throw createError({ statusCode: 400, statusMessage: 'Invalid search query' })
   return scalar.trim()
+}
+
+export const parseGeocodeQuery = (value: unknown) => {
+  const scalar = getScalarQueryValue(value)?.trim() ?? ''
+  if (scalar.length < 2 || scalar.length > 120) throw createError({ statusCode: 400, statusMessage: 'Invalid geocoding query' })
+  return scalar
+}
+
+export const parseOptionalMapTextQuery = (value: unknown) => {
+  if (value === undefined) return undefined
+  const scalar = getScalarQueryValue(value)?.trim() ?? ''
+  if (scalar.length > 100) throw createError({ statusCode: 400, statusMessage: 'Invalid map filter' })
+  return scalar || undefined
+}
+
+export const parseCoordinateQuery = (value: unknown, min: number, max: number) => {
+  const scalar = getScalarQueryValue(value)
+  const coordinate = scalar === null ? Number.NaN : Number(scalar)
+  if (!Number.isFinite(coordinate) || coordinate < min || coordinate > max) throw createError({ statusCode: 400, statusMessage: 'Invalid coordinate' })
+  return coordinate
 }
 
 export const assertRequestDate = (date: string) => {

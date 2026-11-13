@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { formatMemoryDate, formatType } from '~/utils/memory'
+import { formatMemoryLocation } from '~/utils/location'
 
 const route = useRoute()
 const repository = useMemoryRepository()
@@ -15,6 +16,10 @@ const newerMemory = computed(() => currentIndex.value > 0 ? allMemories.value?.[
 const olderMemory = computed(() => currentIndex.value >= 0 ? allMemories.value?.[currentIndex.value + 1] : undefined)
 const deleteError = ref('')
 const deleting = ref(false)
+
+const handleLocationUpdated = (updated: typeof memory.value) => {
+  if (updated) memory.value = updated
+}
 
 const deleteMemory = async () => {
   if (!memory.value || !window.confirm(`Delete “${memory.value.title}”? This permanently deletes index.md and every file in its media/ folder.`)) return
@@ -42,7 +47,7 @@ useSeoMeta({
   <div v-if="memory" class="page memory-page page-container">
     <NuxtLink to="/timeline" class="back-link"><Icon name="lucide:arrow-right" class="app-icon" /> Back to timeline</NuxtLink>
     <header class="memory-header">
-       <div class="memory-header-meta"><MemoryMeta :memory="memory" /><span v-if="memory.location" class="location-meta"><Icon name="lucide:map-pin" class="app-icon" />{{ memory.location }}</span></div>
+       <div class="memory-header-meta"><MemoryMeta :memory="memory" /><span v-if="memory.location" class="location-meta"><Icon name="lucide:map-pin" class="app-icon" />{{ formatMemoryLocation(memory.location) }}</span></div>
        <h1>{{ memory.title }}</h1>
        <p class="memory-lede">{{ memory.excerpt }}</p>
      </header>
@@ -59,13 +64,15 @@ useSeoMeta({
             <button type="button" class="text-link text-link--danger" :disabled="deleting" @click="deleteMemory">{{ deleting ? 'Deleting...' : 'Delete memory' }}</button>
           </details>
           <div v-if="deleteError" class="detail-message detail-message--sidebar" role="alert"><span>{{ deleteError }}</span><button type="button" class="text-link" @click="refresh()">Reload memory <Icon name="lucide:arrow-right" class="app-icon" /></button></div>
-        </aside>
+       </aside>
        <article class="memory-content">
          <MDC :value="memory.content" />
        </article>
-     </div>
+      </div>
 
-      <ExternalEditingActions :folder-path="memory.folderPath" quiet />
+      <ExifLocationSuggestions :memory="memory" @updated="handleLocationUpdated" @reload="refresh" />
+
+       <ExternalEditingActions :folder-path="memory.folderPath" quiet />
 
     <nav class="memory-navigation" aria-label="Memory navigation">
       <NuxtLink v-if="olderMemory" :to="`/memory/${olderMemory.date}`" class="memory-nav-item memory-nav-item--older"><span class="nav-direction">Older memory</span><strong>{{ olderMemory.title }}</strong><span>{{ formatMemoryDate(olderMemory.date, { month: 'short', day: 'numeric', year: 'numeric' }) }}</span></NuxtLink>

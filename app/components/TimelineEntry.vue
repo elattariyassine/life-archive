@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { formatMemoryDay, formatMemoryMonth, formatType, getMemoryImages } from '~/utils/memory'
+import { formatMemoryLocation } from '~/utils/location'
 import type { Memory } from '~/types/memory'
 
 const props = defineProps<{ memory: Memory }>()
@@ -44,7 +45,7 @@ watch(images, () => {
     <div class="timeline-rule" aria-hidden="true"><span /></div>
     <div class="timeline-content">
       <NuxtLink :to="`/memory/${memory.date}`" class="timeline-content-main">
-        <div class="entry-kicker"><span>{{ formatType(memory.type) }}</span><span v-if="memory.location"><Icon name="lucide:map-pin" class="app-icon" />{{ memory.location }}</span></div>
+        <div class="entry-kicker"><span>{{ formatType(memory.type) }}</span><span v-if="memory.location"><Icon name="lucide:map-pin" class="app-icon" />{{ formatMemoryLocation(memory.location) }}</span></div>
         <h3>{{ memory.title }}</h3>
         <p v-if="memory.excerpt">{{ memory.excerpt }}</p>
         <div class="entry-footer">

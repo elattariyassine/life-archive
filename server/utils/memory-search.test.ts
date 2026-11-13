@@ -13,7 +13,7 @@ const memory = (overrides: Partial<Memory> = {}): Memory => ({
   title: 'A quiet morning',
   type: 'highlight',
   tags: ['work', 'personal'],
-  location: 'Marrakech, Morocco',
+  location: { name: 'Jardin Majorelle', city: 'Marrakech', country: 'Morocco', precision: 'place', source: 'manual' },
   excerpt: 'A quiet morning.',
   content: '# What happened\n\nI walked through the old city and wrote about **attention**.',
   media: [],
@@ -28,7 +28,9 @@ describe('memory search', () => {
   it('matches title, tags, and location case-insensitively with partial text', () => {
     expect(searchMemories([memory()], 'QUIET')[0]?.matches).toEqual(['title'])
     expect(searchMemories([memory()], 'pers')[0]?.matches).toEqual(['tag'])
-    expect(searchMemories([memory()], 'RAKE')[0]?.matches).toEqual(['location'])
+    expect(searchMemories([memory()], 'jardin')[0]?.matches).toEqual(['location'])
+    expect(searchMemories([memory()], 'marr')[0]?.matches).toEqual(['location'])
+    expect(searchMemories([memory()], 'occo')[0]?.matches).toEqual(['location'])
     expect(searchMemories([memory()], 'pers')[0]?.excerpt).toBe('Tag: personal')
   })
 

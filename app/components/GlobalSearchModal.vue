@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { MemorySearchResult } from '~/types/memory'
 import { formatMemoryDate, formatType, getMemoryImages } from '~/utils/memory'
+import { formatMemoryLocation } from '~/utils/location'
 
 const props = defineProps<{
   open: boolean
@@ -157,7 +158,7 @@ const handleKeydown = (event: KeyboardEvent) => {
           </div>
           <div v-else class="global-search-result-image media-placeholder" aria-hidden="true" />
           <div class="global-search-result-copy">
-            <div class="entry-kicker"><span>{{ formatType(result.memory.type) }}</span><span>{{ formatMemoryDate(result.memory.date, { month: 'short', day: 'numeric', year: 'numeric' }) }}</span></div>
+             <div class="entry-kicker"><span>{{ formatType(result.memory.type) }}</span><span>{{ formatMemoryDate(result.memory.date, { month: 'short', day: 'numeric', year: 'numeric' }) }}</span><span v-if="result.memory.location"><Icon name="lucide:map-pin" class="app-icon" />{{ formatMemoryLocation(result.memory.location) }}</span></div>
             <h3>{{ result.memory.title }}</h3>
             <p>{{ result.excerpt }}</p>
           </div>

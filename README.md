@@ -21,6 +21,16 @@ NUXT_ARCHIVE_DIR=/absolute/path/to/life-archive-data \
 npm run dev
 ```
 
+Location search uses Photon server-side. Override its endpoint or the optional MapLibre style when using a different hosted service:
+
+```bash
+NUXT_PHOTON_URL=https://photon.komoot.io/api \
+NUXT_PUBLIC_MAP_STYLE_URL=https://tiles.openfreemap.org/styles/positron \
+npm run dev
+```
+
+The default map style is OpenFreeMap's official Positron style rather than public OpenStreetMap community tiles. The MapLibre attribution control displays the OpenFreeMap/OpenStreetMap attribution from the style. Review the selected tile provider's current terms, attribution requirements, availability, and privacy policy before production use. Map tiles are loaded only after opening the picker, and the browser will contact that provider for the visible map viewport.
+
 When `NUXT_ARCHIVE_DIR` is set without `NUXT_ARCHIVE_REPOSITORY`, filesystem mode is selected automatically. Set `NUXT_ARCHIVE_REPOSITORY=sample` to force fixtures while keeping an archive path configured.
 
 The archive is expected to look like this:
@@ -51,15 +61,15 @@ app/
 ├── components/               # Shell, navigation, cards, timeline entries, creation and external-editor actions
 ├── composables/              # Repository access used by pages
 ├── data/fixtures.ts          # Realistic sample memories for the MVP
-├── pages/                    # Home, timeline, detail, gallery, settings
+├── pages/                    # Home, timeline, detail, gallery, map, settings
 ├── repositories/             # API adapter, contract and fixture adapter
 ├── types/memory.ts           # Shared memory schema
-└── utils/                    # Date and API error helpers
+└── utils/                    # Date, location, and API error helpers
 fixtures/archive/             # Sample Markdown source examples, outside app content/
 public/sample-media/          # Offline sample media referenced by the fixtures
-server/api/                   # Typed memory and validated media endpoints
+server/api/                   # Typed memory, geocoding, EXIF, map, and media endpoints
 server/repositories/          # External filesystem repository and tests
-server/utils/                 # Runtime repository selection and query validation
+server/utils/                 # Runtime repository selection, geocoding, EXIF, and query validation
 ```
 
 ## Data architecture
@@ -81,14 +91,19 @@ The read API surface is:
 - `GET /api/memories` with optional `year` and `month` query parameters
 - `GET /api/memories/YYYY-MM-DD`
 - `GET /api/search?q=<query>` with optional `year` and `type` filters
+- `GET /api/geocode?q=<place-query>` for normalized Photon suggestions
+- `POST /api/reverse-geocode` for explicit accepted-EXIF labels, with coordinates in the request body
+- `GET /api/map` for coordinate-bearing memory previews with combined filters
+- `GET /api/memories/YYYY-MM-DD/location-suggestions` for explicit local EXIF inspection
 - `GET /api/archive-media/YYYY-MM-DD/<media-path>` for validated filesystem media
 
 The write API surface is filesystem-only:
 
 - `POST /api/memories` to create a memory
+- `PATCH /api/memories/YYYY-MM-DD/location` to accept or explicitly correct structured location metadata with an expected version
 - `DELETE /api/memories/YYYY-MM-DD` with `expectedVersion` to delete a memory and its media
 
-The creation form at `/memory/new` collects the date, title, type, location, mood, and tags. On success it creates `YYYY/MM/DD/index.md` with YAML frontmatter, creates the adjacent `media/` directory, and writes a minimal `# What happened` body. The success state and every filesystem-backed detail page provide the archive folder path, an `Open in VS Code` action using the registered `vscode://file/...` URI handler, and a `Copy path` fallback. Life Archive does not edit Markdown or upload media.
+The creation form at `/memory/new` collects the date, title, type, location, mood, and tags. Location text can remain manual, or use server-side Photon suggestions, a lazy MapLibre picker, or an explicit browser-device location action. Only the location query is sent to Photon; memory content and metadata are not included. On success it creates `YYYY/MM/DD/index.md` with YAML frontmatter, creates the adjacent `media/` directory, and writes a minimal `# What happened` body. The success state and every filesystem-backed detail page provide the archive folder path, an `Open in VS Code` action using the registered `vscode://file/...` URI handler, and a `Copy path` fallback. Life Archive does not edit Markdown or upload media.
 
 The search page at `/search` searches titles, Markdown body text, tags, and locations with case-insensitive partial matching. Results are read from the current repository on every search, ordered newest first, and can be narrowed by year and memory type. Markdown formatting is removed for body matching and result excerpts.
 
@@ -113,6 +128,10 @@ The app uses Nuxt Content's `<MDC>` component only to render Markdown content re
 ## Security boundary
 
 Dates are strictly validated before path resolution. Filesystem media paths are resolved with `realpath` and must remain inside both the archive root and the requested date's `media/` directory. No API parameter accepts an arbitrary filesystem path. The resolved memory folder path is returned only to support the local external-editor actions.
+
+Geocoding queries are trimmed, limited to 120 characters, capped at five normalized results, and proxied through the server with a five-second timeout. Provider responses are validated before reaching the client. Device location is requested only after the user clicks the action and is labeled as approximate. Precise coordinates are not logged by the geocoding or location-selection code.
+
+EXIF inspection is explicit and local-only. The server reads supported image files through the same archive path resolver used by media delivery, returns no absolute paths, and never uploads photographs. Accepting a coordinate-only EXIF suggestion may make one explicit reverse-geocoding request for a readable label; rejecting it performs no filesystem write. The map endpoint returns only metadata needed for markers and previews, never Markdown bodies or folder paths.
 
 The external archive is intentionally handled by the server adapter instead of being registered as a Nuxt Content collection. The renderer receives only the normalized Markdown content for the requested memory.
 

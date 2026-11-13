@@ -7,6 +7,19 @@ export interface Mood {
   score: number
 }
 
+export type MemoryLocationPrecision = 'place' | 'city' | 'region' | 'unknown'
+export type MemoryLocationSource = 'manual' | 'geocoding' | 'exif' | 'device'
+
+export interface MemoryLocation {
+  name: string
+  city?: string
+  country?: string
+  latitude?: number
+  longitude?: number
+  precision?: MemoryLocationPrecision
+  source?: MemoryLocationSource
+}
+
 export interface MemoryMedia {
   src: string
   alt: string
@@ -28,7 +41,7 @@ export interface Memory {
   type: MemoryType
   mood?: Mood
   tags: string[]
-  location?: string
+  location?: MemoryLocation
   excerpt: string
   content: string
   media: MemoryMedia[]
@@ -67,11 +80,12 @@ export interface MemoryCreateInput {
   type: MemoryType
   mood?: Mood
   tags: string[]
-  location?: string
+  location?: string | MemoryLocation
 }
 
 export interface MemoryWriteRepository {
   createMemory(input: MemoryCreateInput): Promise<Memory>
+  updateMemoryLocation(date: string, expectedVersion: string, location: MemoryLocation): Promise<Memory>
   deleteMemory(date: string, expectedVersion: string): Promise<void>
 }
 

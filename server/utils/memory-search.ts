@@ -1,4 +1,5 @@
 import type { Memory, MemorySearchMatch, MemorySearchResult } from '../../app/types/memory'
+import { formatMemoryLocation, getMemoryLocationSearchText } from '../../app/utils/location'
 
 export const stripMarkdown = (content: string, options: { removeHeadings?: boolean } = {}) => content
   .replace(/```[^\n]*\n([\s\S]*?)```/g, '$1')
@@ -36,7 +37,7 @@ export const searchMemories = (memories: Memory[], rawQuery: string): MemorySear
       if (hasMatch(memory.title, query)) matches.push('title')
       if (hasMatch(content, query)) matches.push('content')
       if (memory.tags.some(tag => hasMatch(tag, query))) matches.push('tag')
-      if (memory.location && hasMatch(memory.location, query)) matches.push('location')
+       if (memory.location && hasMatch(getMemoryLocationSearchText(memory.location), query)) matches.push('location')
       if (hasMatch(memory.type, query)) matches.push('type')
       if (hasMatch(memory.date, query)) matches.push('date')
       if (!matches.length) return null
@@ -47,7 +48,7 @@ export const searchMemories = (memories: Memory[], rawQuery: string): MemorySear
         : primaryMatch === 'tag'
           ? `Tag: ${memory.tags.find(tag => hasMatch(tag, query))}`
           : primaryMatch === 'location'
-            ? `Location: ${memory.location}`
+             ? `Location: ${formatMemoryLocation(memory.location)}`
             : primaryMatch === 'type'
               ? `Type: ${memory.type}`
               : primaryMatch === 'date'

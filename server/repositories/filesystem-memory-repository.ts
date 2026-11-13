@@ -2,7 +2,10 @@ import { createHash, randomUUID } from 'node:crypto'
 import { mkdir, mkdtemp, readdir, readFile, realpath, rename, rm, stat, unlink, writeFile } from 'node:fs/promises'
 import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { parseDocument, stringify } from 'yaml'
-import { memoryTypes, type Memory, type MemoryCreateInput, type MemoryFilters, type MemoryMedia, type MemoryMediaKind, type MemoryRepository } from '../../app/types/memory'
+import type { MemoryMapFilters, MemoryMapPoint, MemoryMapRepository } from '../../app/types/location-discovery'
+import { memoryTypes, type Memory, type MemoryCreateInput, type MemoryFilters, type MemoryLocation, type MemoryMedia, type MemoryMediaKind, type MemoryRepository } from '../../app/types/memory'
+import { normalizeMemoryLocation } from '../../app/utils/location'
+import { hasValidMemoryCoordinates, matchesMemoryMapFilters } from '../../app/utils/location-filters'
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
 const YEAR_PATTERN = /^\d{4}$/
@@ -20,8 +23,9 @@ const mediaKinds: Record<string, MemoryMediaKind> = {
   '.pdf': 'document'
 }
 
-export interface FilesystemMemoryRepository extends MemoryRepository {
+export interface FilesystemMemoryRepository extends MemoryRepository, MemoryMapRepository {
   createMemory(input: MemoryCreateInput): Promise<Memory>
+  updateMemoryLocation(date: string, expectedVersion: string, location: MemoryLocation): Promise<Memory>
   deleteMemory(date: string, expectedVersion: string): Promise<void>
 }
 
@@ -164,13 +168,16 @@ const normalizeMemory = (frontmatter: RecordValue, content: string, expectedDate
     : undefined
   const excerpt = typeof frontmatter.excerpt === 'string' && frontmatter.excerpt.trim() ? frontmatter.excerpt.trim() : getExcerpt(content)
 
+  const location = normalizeMemoryLocation(frontmatter.location)
+  if (location === null) return null
+
   return {
     date,
     title,
     type: type as Memory['type'],
     mood,
     tags,
-    location: typeof frontmatter.location === 'string' ? frontmatter.location.trim() || undefined : undefined,
+    location,
     excerpt,
     content,
     music
@@ -178,6 +185,12 @@ const normalizeMemory = (frontmatter: RecordValue, content: string, expectedDate
 }
 
 const sortByDate = (memories: Memory[]) => [...memories].sort((a, b) => b.date.localeCompare(a.date))
+
+const toMemoryMapPoint = (memory: Memory): MemoryMapPoint | null => {
+  const location = memory.location
+  if (!hasValidMemoryCoordinates(location) || !location) return null
+  return { date: memory.date, title: memory.title, type: memory.type, mood: memory.mood, tags: memory.tags, location, media: memory.media }
+}
 
 const readDirectory = async (directory: string) => {
   try {
@@ -250,7 +263,7 @@ const rewriteMediaReferences = (content: string, date: string, media: MemoryMedi
   })
 }
 
-const readMemoryRecordAtDate = async (archiveRoot: string, date: string): Promise<MemoryRecord | null> => {
+const readMemoryRecordAtDate = async (archiveRoot: string, date: string, options: { includeContent?: boolean } = {}): Promise<MemoryRecord | null> => {
   const memoryDirectory = getDateDirectory(archiveRoot, date)
   if (!isInside(archiveRoot, memoryDirectory)) throw new ArchivePathError()
   let resolvedMemoryDirectory: string
@@ -276,10 +289,11 @@ const readMemoryRecordAtDate = async (archiveRoot: string, date: string): Promis
   }
   const parsed = parseFrontmatter(raw)
   if (!parsed) return null
-  const normalized = normalizeMemory(parsed.frontmatter, parsed.content, date)
+  const includeContent = options.includeContent !== false
+  const normalized = normalizeMemory(parsed.frontmatter, includeContent ? parsed.content : '', date)
   if (!normalized) return null
   const media = await readMedia(archiveRoot, date, parsed.content)
-  return { memory: { ...normalized, content: rewriteMediaReferences(normalized.content, date, media), media, version: createVersion(raw), folderPath: resolvedMemoryDirectory }, raw }
+  return { memory: { ...normalized, content: includeContent ? rewriteMediaReferences(normalized.content, date, media) : '', media, ...(includeContent ? { version: createVersion(raw), folderPath: resolvedMemoryDirectory } : {}) }, raw }
 }
 
 const validateFilters = (filters?: MemoryFilters) => {
@@ -289,12 +303,30 @@ const validateFilters = (filters?: MemoryFilters) => {
 
 const createVersion = (content: string) => createHash('sha256').update(content).digest('hex')
 
+const LOCATION_FIELD_PATTERN = /(^|\r?\n)location:[^\r\n]*(?:\r?\n[ \t]+[^\r\n]*)*/m
+
+export const updateFrontmatterLocation = (raw: string, location: MemoryLocation) => {
+  const match = raw.match(FRONTMATTER_PATTERN)
+  if (!match || match.index === undefined) throw new InvalidMemoryMetadataError()
+  const lineEnding = match[1]?.includes('\r\n') ? '\r\n' : '\n'
+  const serialized = stringify({ location }, { lineWidth: 0 }).trimEnd().replaceAll('\n', lineEnding)
+  const source = match[1] ?? ''
+  const updatedSource = LOCATION_FIELD_PATTERN.test(source)
+    ? source.replace(LOCATION_FIELD_PATTERN, (_field, separator: string) => `${separator}${serialized}`)
+    : `${source.trimEnd()}${lineEnding}${serialized}`
+  const sourceStart = match[0].indexOf(source)
+  const updatedFrontmatter = `${match[0].slice(0, sourceStart)}${updatedSource}${match[0].slice(sourceStart + source.length)}`
+  return `${raw.slice(0, match.index)}${updatedFrontmatter}${raw.slice(match.index + match[0].length)}`
+}
+
 const validateCreateInput = (input: MemoryCreateInput): MemoryCreateInput => {
   if (!input || typeof input !== 'object' || !isValidMemoryDate(input.date) || typeof input.title !== 'string' || !input.title.trim() || input.title.trim().length > MAX_TITLE_LENGTH || !memoryTypes.includes(input.type)) throw new InvalidMemoryMetadataError()
   if (!Array.isArray(input.tags) || input.tags.some(tag => typeof tag !== 'string' || tag.length > 50) || input.tags.length > 30) throw new InvalidMemoryMetadataError()
   if (input.mood && (typeof input.mood.label !== 'string' || !input.mood.label.trim() || !Number.isInteger(input.mood.score) || input.mood.score < 1 || input.mood.score > 10)) throw new InvalidMemoryMetadataError()
-  if (input.location !== undefined && (typeof input.location !== 'string' || input.location.length > 200)) throw new InvalidMemoryMetadataError()
-  return { ...input, title: input.title.trim(), tags: input.tags.map(tag => tag.trim()).filter(Boolean), location: input.location?.trim() || undefined }
+  if (typeof input.location === 'string' && input.location.length > 200) throw new InvalidMemoryMetadataError()
+  const location = normalizeMemoryLocation(input.location, { scalarSource: 'manual' })
+  if (location === null) throw new InvalidMemoryMetadataError()
+  return { ...input, title: input.title.trim(), tags: input.tags.map(tag => tag.trim()).filter(Boolean), location }
 }
 
 const serializeMemory = (input: MemoryCreateInput) => {
@@ -370,6 +402,28 @@ export function createFilesystemMemoryRepository(archiveRoot: string): Filesyste
       }
       return sortByDate(memories)
     },
+    async getMemoryMapPoints(filters) {
+      validateFilters(filters?.year === undefined ? undefined : { year: filters.year })
+      const root = await getRealArchiveRoot(archiveRoot)
+      if (!root) return []
+      const points: MemoryMapPoint[] = []
+      for (const yearEntry of await readDirectory(root)) {
+        if (!yearEntry.isDirectory() || !YEAR_PATTERN.test(yearEntry.name)) continue
+        if (filters?.year !== undefined && Number(yearEntry.name) !== filters.year) continue
+        for (const monthEntry of await readDirectory(join(root, yearEntry.name))) {
+          if (!monthEntry.isDirectory() || !MONTH_PATTERN.test(monthEntry.name)) continue
+          for (const dayEntry of await readDirectory(join(root, yearEntry.name, monthEntry.name))) {
+            if (!dayEntry.isDirectory() || !DAY_PATTERN.test(dayEntry.name)) continue
+            const date = `${yearEntry.name}-${monthEntry.name}-${dayEntry.name}`
+            if (!isValidMemoryDate(date)) continue
+            const record = await readMemoryRecordAtDate(root, date, { includeContent: false })
+            const point = record ? toMemoryMapPoint(record.memory) : null
+            if (point && matchesMemoryMapFilters(point, filters)) points.push(point)
+          }
+        }
+      }
+      return points.sort((a, b) => b.date.localeCompare(a.date))
+    },
     async getMemoryByDate(date) {
       assertValidMemoryDate(date)
       const root = await getRealArchiveRoot(archiveRoot)
@@ -399,6 +453,22 @@ export function createFilesystemMemoryRepository(archiveRoot: string): Filesyste
       const record = await readMemoryRecordAtDate(root, draft.date)
       if (!record) throw new Error('Created memory could not be read')
       return record.memory
+    },
+    async updateMemoryLocation(date, expectedVersion, location) {
+      assertValidMemoryDate(date)
+      const normalizedLocation = normalizeMemoryLocation(location)
+      if (!normalizedLocation) throw new InvalidMemoryMetadataError()
+      const root = await getWritableRoot(archiveRoot)
+      const current = await readMemoryRecordAtDate(root, date)
+      if (!current) throw new MemoryNotFoundError()
+      assertExpectedVersion(current, expectedVersion)
+      const sourceDirectory = current.memory.folderPath || getDateDirectory(root, date)
+      const indexPath = join(sourceDirectory, 'index.md')
+      if (!isInside(root, sourceDirectory) || !isInside(sourceDirectory, indexPath)) throw new ArchivePathError()
+      await writeFileAtomically(indexPath, updateFrontmatterLocation(current.raw, normalizedLocation))
+      const updated = await readMemoryRecordAtDate(root, date)
+      if (!updated) throw new Error('Updated memory could not be read')
+      return updated.memory
     },
     async deleteMemory(date, expectedVersion) {
       assertValidMemoryDate(date)

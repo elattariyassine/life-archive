@@ -2,6 +2,7 @@ import { mkdtemp, mkdir, readFile, readdir, realpath, rm, stat, symlink, writeFi
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
+import type { MemoryCreateInput } from '../../app/types/memory'
 import {
   ArchivePathError,
   InvalidMemoryDateError,
@@ -20,13 +21,14 @@ const createArchive = async () => {
   return directory
 }
 
-const createInput = (date = '2026-12-01') => ({
+const createInput = (date = '2026-12-01', overrides: Partial<MemoryCreateInput> = {}): MemoryCreateInput => ({
   date,
   title: 'Created memory',
   type: 'travel' as const,
   mood: { label: 'Curious', score: 8 },
   tags: ['travel', 'testing'],
-  location: 'Coast'
+  location: { name: 'Coast', precision: 'place', source: 'manual' },
+  ...overrides
 })
 
 const writeMemory = async (root: string, date: string, content: string, media: string[] = []) => {
@@ -52,13 +54,60 @@ describe('filesystem memory repository', () => {
       date: '2026-12-01',
       title: 'Created memory',
       type: 'travel',
-      location: 'Coast',
+      location: { name: 'Coast', precision: 'place', source: 'manual' },
       folderPath: await realpath(directory),
       content: '# What happened'
     })
     expect(source).toContain('title: Created memory')
     expect(source).toContain('tags:')
+    expect(source).toContain('name: Coast')
     expect(await stat(join(directory, 'media'))).toBeDefined()
+  })
+
+  it('normalizes legacy scalar locations without rewriting the Markdown file', async () => {
+    const root = await createArchive()
+    const date = '2026-12-02'
+    const directory = join(root, ...date.split('-'))
+    const source = `---\ndate: ${date}\ntitle: Legacy place\ntype: travel\nlocation: Marrakech, Morocco\n---\n\nA legacy location.\n`
+    await mkdir(directory, { recursive: true })
+    await writeFile(join(directory, 'index.md'), source)
+
+    const memory = await createFilesystemMemoryRepository(root).getMemoryByDate(date)
+
+    expect(memory?.location).toEqual({ name: 'Marrakech, Morocco', precision: 'unknown' })
+    expect(await readFile(join(directory, 'index.md'), 'utf8')).toBe(source)
+  })
+
+  it('parses structured locations with optional fields omitted', async () => {
+    const root = await createArchive()
+    const date = '2026-12-03'
+    const directory = join(root, ...date.split('-'))
+    await mkdir(directory, { recursive: true })
+    await writeFile(join(directory, 'index.md'), `---\ndate: ${date}\ntitle: Named place\ntype: travel\nlocation:\n  name: The coast\n---\n\nA place without coordinates.\n`)
+
+    const memory = await createFilesystemMemoryRepository(root).getMemoryByDate(date)
+
+    expect(memory?.location).toEqual({ name: 'The coast' })
+  })
+
+  it('parses structured location details and preserves their source', async () => {
+    const root = await createArchive()
+    const date = '2026-12-05'
+    const directory = join(root, ...date.split('-'))
+    await mkdir(directory, { recursive: true })
+    await writeFile(join(directory, 'index.md'), `---\ndate: ${date}\ntitle: Jardin Majorelle\ntype: travel\nlocation:\n  name: Jardin Majorelle\n  city: Marrakech\n  country: Morocco\n  latitude: 31.6416\n  longitude: -8.0034\n  precision: place\n  source: geocoding\n---\n\nA structured place.\n`)
+
+    const memory = await createFilesystemMemoryRepository(root).getMemoryByDate(date)
+
+    expect(memory?.location).toEqual({
+      name: 'Jardin Majorelle',
+      city: 'Marrakech',
+      country: 'Morocco',
+      latitude: 31.6416,
+      longitude: -8.0034,
+      precision: 'place',
+      source: 'geocoding'
+    })
   })
 
   it('does not overwrite an existing memory on the same date', async () => {
@@ -70,12 +119,76 @@ describe('filesystem memory repository', () => {
     expect(await readFile(join(directory, 'index.md'), 'utf8')).toContain('Original writing')
   })
 
+  it('updates only location frontmatter atomically and preserves the Markdown body', async () => {
+    const root = await createArchive()
+    const date = '2026-12-06'
+    const directory = join(root, ...date.split('-'))
+    const body = '\n# What happened\n\n![Photo](./media/photo.jpg)\n\nA body kept byte-for-byte.\n'
+    const source = `---\ndate: ${date}\ntitle: External memory\ntype: travel\ntags:\n  - original\nmood:\n  label: Calm\n  score: 7\n---${body}`
+    await mkdir(join(directory, 'media'), { recursive: true })
+    await writeFile(join(directory, 'index.md'), source)
+    const repository = createFilesystemMemoryRepository(root)
+    const current = await repository.getMemoryByDate(date)
+
+    const updated = await repository.updateMemoryLocation(date, current?.version || '', { name: 'Essaouira', city: 'Essaouira', country: 'Morocco', latitude: 31, longitude: -9, precision: 'place', source: 'exif' })
+    const updatedSource = await readFile(join(directory, 'index.md'), 'utf8')
+    const bodyStart = updatedSource.indexOf('---\n', 4) + 3
+
+    expect(updated.location).toMatchObject({ name: 'Essaouira', source: 'exif' })
+    expect(updated.version).not.toBe(current?.version)
+    expect(updatedSource.slice(bodyStart)).toBe(body)
+    expect(updatedSource).toContain('  - original')
+    expect(updatedSource).toContain('label: Calm')
+    expect(updatedSource).toContain('name: Essaouira')
+  })
+
+  it('rejects stale or invalid location updates without changing the file', async () => {
+    const root = await createArchive()
+    const repository = createFilesystemMemoryRepository(root)
+    const created = await repository.createMemory(createInput('2026-12-07'))
+    const sourcePath = join(root, '2026', '12', '07', 'index.md')
+    const source = await readFile(sourcePath, 'utf8')
+
+    await expect(repository.updateMemoryLocation(created.date, 'stale-version', { name: 'Elsewhere', latitude: 1, longitude: 2 })).rejects.toBeInstanceOf(MemoryConflictError)
+    await expect(repository.updateMemoryLocation(created.date, created.version || '', { name: 'Invalid', latitude: 91, longitude: 2 })).rejects.toBeInstanceOf(InvalidMemoryMetadataError)
+    expect(await readFile(sourcePath, 'utf8')).toBe(source)
+  })
+
+  it('returns only coordinate-bearing memories from combined map filters', async () => {
+    const root = await createArchive()
+    const repository = createFilesystemMemoryRepository(root)
+    await repository.createMemory(createInput('2026-12-08', { tags: ['summer'], location: { name: 'Essaouira', city: 'Essaouira', country: 'Morocco', latitude: 31, longitude: -9, precision: 'place', source: 'manual' } }))
+    await repository.createMemory(createInput('2026-12-09', { tags: ['winter'], location: { name: 'No coordinates', precision: 'unknown', source: 'manual' } }))
+
+    const points = await repository.getMemoryMapPoints({ year: 2026, type: 'travel', tag: 'sum', country: 'mor', city: 'essa' })
+
+    expect(points).toHaveLength(1)
+    expect(points[0]).toMatchObject({ date: '2026-12-08', location: { latitude: 31, longitude: -9 } })
+    expect(points[0]).not.toHaveProperty('content')
+    expect(points[0]).not.toHaveProperty('folderPath')
+  })
+
   it('rejects invalid creation metadata before writing', async () => {
     const root = await createArchive()
     const repository = createFilesystemMemoryRepository(root)
 
     await expect(repository.createMemory({ ...createInput(), date: '2026-02-30' })).rejects.toBeInstanceOf(InvalidMemoryMetadataError)
     await expect(repository.createMemory({ ...createInput(), title: '' })).rejects.toBeInstanceOf(InvalidMemoryMetadataError)
+    await expect(repository.createMemory({ ...createInput(), location: { name: '', source: 'manual' } })).rejects.toBeInstanceOf(InvalidMemoryMetadataError)
+    await expect(repository.createMemory({ ...createInput(), location: { name: 'Place', latitude: 91, longitude: 0 } })).rejects.toBeInstanceOf(InvalidMemoryMetadataError)
+    await expect(repository.createMemory({ ...createInput(), location: { name: 'Place', latitude: 0, longitude: 181 } })).rejects.toBeInstanceOf(InvalidMemoryMetadataError)
+  })
+
+  it('skips malformed structured locations without changing their source file', async () => {
+    const root = await createArchive()
+    const date = '2026-12-04'
+    const directory = join(root, ...date.split('-'))
+    const source = `---\ndate: ${date}\ntitle: Invalid place\ntype: travel\nlocation:\n  name: Place\n  latitude: 91\n  longitude: 0\n---\n\nInvalid coordinates.\n`
+    await mkdir(directory, { recursive: true })
+    await writeFile(join(directory, 'index.md'), source)
+
+    await expect(createFilesystemMemoryRepository(root).getMemoryByDate(date)).resolves.toBeNull()
+    expect(await readFile(join(directory, 'index.md'), 'utf8')).toBe(source)
   })
 
   it('reads Markdown changed externally and preserves relative references on disk', async () => {

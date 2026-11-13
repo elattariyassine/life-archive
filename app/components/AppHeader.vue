@@ -4,6 +4,7 @@ const { openModal } = useGlobalModal()
 const navigation = [
   { label: 'Timeline', to: '/timeline', icon: 'lucide:timeline' },
   { label: 'Gallery', to: '/gallery', icon: 'lucide:layout-grid' },
+  { label: 'Map', to: '/map', icon: 'lucide:map' },
   { label: 'Settings', to: '/settings', icon: 'lucide:settings' }
 ]
 </script>
