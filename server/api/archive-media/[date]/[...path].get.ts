@@ -15,6 +15,7 @@ const mimeTypes: Record<string, string> = {
   '.mov': 'video/quicktime',
   '.mp3': 'audio/mpeg',
   '.ogg': 'audio/ogg',
+  '.opus': 'audio/ogg',
   '.png': 'image/png',
   '.pdf': 'application/pdf',
   '.svg': 'image/svg+xml',

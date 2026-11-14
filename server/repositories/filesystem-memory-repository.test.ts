@@ -61,6 +61,9 @@ describe('filesystem memory repository', () => {
     expect(source).toContain('title: Created memory')
     expect(source).toContain('tags:')
     expect(source).toContain('name: Coast')
+    expect(source).toContain('# Available frontmatter properties:')
+    expect(source).toContain('#   precision:')
+    expect(source).toContain('# music:')
     expect(await stat(join(directory, 'media'))).toBeDefined()
   })
 
@@ -218,6 +221,7 @@ describe('filesystem memory repository', () => {
     await writeFile(join(mediaDirectory, 'beach.jpg'), 'image')
     await writeFile(join(mediaDirectory, 'clip.mp4'), 'video')
     await writeFile(join(mediaDirectory, 'voice.mp3'), 'audio')
+    await writeFile(join(mediaDirectory, 'voice.opus'), 'audio')
     await writeFile(join(mediaDirectory, 'plan.pdf'), 'pdf')
 
     const loaded = await repository.getMemoryByDate(created.date)
@@ -226,17 +230,18 @@ describe('filesystem memory repository', () => {
       ['beach.jpg', 'image'],
       ['clip.mp4', 'video'],
       ['plan.pdf', 'document'],
-      ['voice.mp3', 'audio']
+      ['voice.mp3', 'audio'],
+      ['voice.opus', 'audio']
     ])
   })
 
   it('rewrites supported relative image, video, audio, and PDF references only at read time', async () => {
     const root = await createArchive()
-    await writeMemory(root, '2026-11-12', '![Photo](./media/photo.jpg)\n\n<video src="./media/clip.mp4" controls></video>\n\n<audio src="./media/voice.mp3" controls></audio>\n\n[Plan](./media/plan.pdf)', ['photo.jpg', 'clip.mp4', 'voice.mp3', 'plan.pdf'])
+    await writeMemory(root, '2026-11-12', '<figure><img src="./media/photo.jpg" alt="Photo"><figcaption>Morning</figcaption></figure>\n\n<video src="./media/clip.mp4" controls></video>\n\n<audio src="./media/voice.mp3" controls></audio>\n\n[Plan](./media/plan.pdf)', ['photo.jpg', 'clip.mp4', 'voice.mp3', 'plan.pdf'])
 
     const memory = await createFilesystemMemoryRepository(root).getMemoryByDate('2026-11-12')
 
-    expect(memory?.content).toContain('![Photo](/api/archive-media/2026-11-12/photo.jpg)')
+    expect(memory?.content).toContain('<img src="/api/archive-media/2026-11-12/photo.jpg" alt="Photo">')
     expect(memory?.content).toContain('<video src="/api/archive-media/2026-11-12/clip.mp4" controls></video>')
     expect(memory?.content).toContain('<audio src="/api/archive-media/2026-11-12/voice.mp3" controls></audio>')
     expect(memory?.content).toContain('[Plan](/api/archive-media/2026-11-12/plan.pdf)')

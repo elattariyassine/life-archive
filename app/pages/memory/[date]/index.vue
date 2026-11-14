@@ -58,7 +58,7 @@ useSeoMeta({
         <div class="detail-fact"><span class="fact-label">Type</span><strong>{{ formatType(memory.type) }}</strong></div>
         <div v-if="memory.tags.length" class="detail-fact"><span class="fact-label">Filed under</span><div class="tag-list"><span v-for="tag in memory.tags" :key="tag">{{ tag }}</span></div></div>
           <div v-if="memory.music" class="music-note"><span class="fact-label"><Icon name="lucide:music-2" class="app-icon" /> On repeat</span><strong>{{ memory.music.title }}</strong><span>{{ memory.music.artist }}</span><a :href="memory.music.url" target="_blank" rel="noreferrer">Listen <Icon name="lucide:arrow-up-right" class="app-icon" /></a></div>
-          <div v-if="memory.media.length" class="detail-fact"><span class="fact-label">Media folder</span><strong>{{ memory.media.length }} {{ memory.media.length === 1 ? 'file' : 'files' }}</strong><span>Managed outside Life Archive</span></div>
+           <div v-if="memory.media.length" class="detail-fact detail-fact--media"><span class="fact-label">Media folder</span><strong>{{ memory.media.length }} {{ memory.media.length === 1 ? 'file' : 'files' }}</strong><span>Managed outside Life Archive</span></div>
           <details class="memory-actions-menu">
             <summary>Memory actions <Icon name="lucide:chevron-down" class="app-icon" /></summary>
             <button type="button" class="text-link text-link--danger" :disabled="deleting" @click="deleteMemory">{{ deleting ? 'Deleting...' : 'Delete memory' }}</button>

@@ -18,7 +18,7 @@ const MAX_TITLE_LENGTH = 200
 
 const mediaKinds: Record<string, MemoryMediaKind> = {
   '.avif': 'image', '.gif': 'image', '.heic': 'image', '.jpeg': 'image', '.jpg': 'image', '.png': 'image', '.svg': 'image', '.webp': 'image',
-  '.m4a': 'audio', '.mp3': 'audio', '.ogg': 'audio', '.wav': 'audio',
+  '.m4a': 'audio', '.mp3': 'audio', '.ogg': 'audio', '.opus': 'audio', '.wav': 'audio',
   '.mov': 'video', '.mp4': 'video', '.webm': 'video',
   '.pdf': 'document'
 }
@@ -334,7 +334,7 @@ const serializeMemory = (input: MemoryCreateInput) => {
   if (input.mood) metadata.mood = input.mood
   if (input.tags.length) metadata.tags = input.tags
   if (input.location) metadata.location = input.location
-  return `---\n${stringify(metadata, { lineWidth: 0 })}---\n\n# What happened\n`
+  return `---\n${stringify(metadata, { lineWidth: 0 })}# Available frontmatter properties:\n# date:\n# title:\n# type:\n# tags:\n# mood:\n#   label:\n#   score:\n# location:\n#   name:\n#   city:\n#   country:\n#   latitude:\n#   longitude:\n#   precision:\n#   source:\n# excerpt:\n# music:\n#   title:\n#   artist:\n#   url:\n---\n\n# What happened\n`
 }
 
 export async function writeFileAtomically(filePath: string, data: string | Uint8Array) {

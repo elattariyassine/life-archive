@@ -133,6 +133,30 @@ Geocoding queries are trimmed, limited to 120 characters, capped at five normali
 
 EXIF inspection is explicit and local-only. The server reads supported image files through the same archive path resolver used by media delivery, returns no absolute paths, and never uploads photographs. Accepting a coordinate-only EXIF suggestion may make one explicit reverse-geocoding request for a readable label; rejecting it performs no filesystem write. The map endpoint returns only metadata needed for markers and previews, never Markdown bodies or folder paths.
 
+Markdown media can use semantic figures for visible captions. Relative media paths are rewritten to the secure archive endpoint:
+
+```html
+<figure class="memory-figure">
+  <img src="./media/photo.jpg" alt="Photo prise de la matinée">
+  <figcaption>13 October 2026 · Morning</figcaption>
+</figure>
+```
+
+Two images can be placed side by side with a responsive image pair. It collapses to one column on small screens:
+
+```html
+<div class="memory-image-pair">
+  <figure class="memory-figure">
+    <img src="./media/one.jpg" alt="First photo">
+    <figcaption>Morning</figcaption>
+  </figure>
+  <figure class="memory-figure">
+    <img src="./media/two.jpg" alt="Second photo">
+    <figcaption>Later that day</figcaption>
+  </figure>
+</div>
+```
+
 The external archive is intentionally handled by the server adapter instead of being registered as a Nuxt Content collection. The renderer receives only the normalized Markdown content for the requested memory.
 
 ## Tests
