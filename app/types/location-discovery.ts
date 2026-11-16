@@ -33,6 +33,14 @@ export interface MemoryMapResponse {
   points: MemoryMapPoint[]
 }
 
+export interface MemoryMapFilterOptions {
+  years: number[]
+  tags: string[]
+  moods: string[]
+  countries: string[]
+  cities: string[]
+}
+
 export interface MemoryMapRepository {
   getMemoryMapPoints(filters?: MemoryMapFilters): Promise<MemoryMapPoint[]>
 }

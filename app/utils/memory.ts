@@ -1,5 +1,9 @@
 import type { Memory, MemoryType } from '~/types/memory'
 
+export type MemoryOrigin = 'home' | 'timeline' | 'gallery' | 'search' | 'map'
+
+export const getMemoryPath = (date: string, origin?: MemoryOrigin) => origin ? `/memory/${date}?from=${origin}` : `/memory/${date}`
+
 export const formatMemoryDate = (date: string, options: Intl.DateTimeFormatOptions = { month: 'long', day: 'numeric', year: 'numeric' }) => {
   return new Intl.DateTimeFormat('en-US', { ...options, timeZone: 'UTC' }).format(new Date(`${date}T12:00:00Z`))
 }
@@ -23,8 +27,10 @@ export const getMemoryMonth = (date: string) => date.slice(0, 7)
 export const formatType = (type: MemoryType) => type.charAt(0).toUpperCase() + type.slice(1)
 
 const imagePattern = /\.(avif|gif|heic|jpe?g|png|svg|webp)(?:[?#]|$)/i
+const videoPattern = /\.(mov|mp4|webm)(?:[?#]|$)/i
 
 export const getMemoryImages = (memory: Pick<Memory, 'media'>) => memory.media.filter(media => media.kind === 'image' || (!media.kind && imagePattern.test(media.path || media.src)))
+export const getMemoryVisualMedia = (memory: Pick<Memory, 'media'>) => memory.media.filter(media => media.kind === 'image' || media.kind === 'video' || (!media.kind && (imagePattern.test(media.path || media.src) || videoPattern.test(media.path || media.src))))
 
 export const groupMemoriesByYear = (memories: Memory[]) => {
   return memories.reduce<Record<number, Memory[]>>((groups, memory) => {

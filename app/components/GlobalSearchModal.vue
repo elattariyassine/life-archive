@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { MemorySearchResult } from '~/types/memory'
-import { formatMemoryDate, formatType, getMemoryImages } from '~/utils/memory'
+import { formatMemoryDate, formatType, getMemoryImages, getMemoryPath } from '~/utils/memory'
 import { formatMemoryLocation } from '~/utils/location'
 
 const props = defineProps<{
@@ -87,7 +87,7 @@ const openSelected = () => {
   const result = selectedResult.value
   if (!result) return
   emit('close')
-  navigateTo(`/memory/${result.memory.date}`)
+  navigateTo(getMemoryPath(result.memory.date, 'search'))
 }
 
 const handleKeydown = (event: KeyboardEvent) => {
@@ -145,7 +145,7 @@ const handleKeydown = (event: KeyboardEvent) => {
           v-for="(result, index) in results"
           :id="`global-search-result-${index}`"
           :key="result.memory.date"
-          :to="`/memory/${result.memory.date}`"
+          :to="getMemoryPath(result.memory.date, 'search')"
           class="global-search-result"
           :class="{ 'global-search-result--selected': index === selectedIndex }"
           role="option"
