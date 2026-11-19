@@ -14,7 +14,8 @@ const point: MemoryMapPoint = {
 
 describe('map filters', () => {
   it('combines year, type, tag, mood, country, and city filters', () => {
-    expect(matchesMemoryMapFilters(point, { year: 2026, type: 'travel', tag: 'sum', mood: 'grat', country: 'mor', city: 'essa' })).toBe(true)
+    expect(matchesMemoryMapFilters(point, { year: 2026, type: 'travel', tag: 'Summer', mood: 'grateful', country: 'morocco', city: 'Essaouira' })).toBe(true)
+    expect(matchesMemoryMapFilters(point, { tag: 'sum' })).toBe(false)
     expect(matchesMemoryMapFilters(point, { year: 2025, type: 'travel' })).toBe(false)
     expect(matchesMemoryMapFilters(point, { year: 2026, type: 'thought' })).toBe(false)
     expect(matchesMemoryMapFilters(point, { year: 2026, tag: 'winter', mood: 'tired', country: 'France', city: 'Paris' })).toBe(false)

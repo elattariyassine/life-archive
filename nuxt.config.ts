@@ -13,7 +13,19 @@ export default defineNuxtConfig({
       collections: ['lucide']
     }
   },
-  css: ['maplibre-gl/dist/maplibre-gl.css', '~/assets/css/main.css'],
+  css: [
+    '@fontsource-variable/inter/index.css',
+    '@fontsource-variable/newsreader/opsz.css',
+    '@fontsource-variable/newsreader/opsz-italic.css',
+    'maplibre-gl/dist/maplibre-gl.css',
+    '~/assets/css/main.css'
+  ],
+  app: {
+    head: {
+      htmlAttrs: { lang: 'en' },
+      meta: [{ name: 'color-scheme', content: 'light dark' }]
+    }
+  },
   devServer: {
     host: '127.0.0.1'
   },

@@ -1,11 +1,15 @@
 <script setup lang="ts">
+import { NuxtLink } from '#components'
 import { formatMemoryDay, formatMemoryMonth, formatType, getMemoryImages, getMemoryPath } from '~/utils/memory'
 import { formatMemoryLocation } from '~/utils/location'
-import type { Memory } from '~/types/memory'
+import { archiveFilterLink, placeFilter } from '~/utils/archive-filters'
+import type { MemorySummary } from '~/types/memory'
 
-const props = defineProps<{ memory: Memory }>()
+const props = defineProps<{ memory: MemorySummary }>()
 
 const images = computed(() => getMemoryImages(props.memory))
+const place = computed(() => placeFilter(props.memory.location))
+const isDraft = computed(() => props.memory.draft)
 const entryKind = computed(() => images.value.length === 0 ? 'text-only' : images.value.length === 1 ? 'single-image' : 'multi-image')
 const activeIndex = ref(0)
 const direction = ref<'next' | 'previous'>('next')
@@ -45,11 +49,15 @@ watch(images, () => {
     </div>
     <div class="timeline-content">
       <div class="timeline-content-main">
-        <div class="entry-kicker"><span>{{ formatType(memory.type) }}</span><span v-if="memory.location"><Icon name="lucide:map-pin" class="app-icon" />{{ formatMemoryLocation(memory.location) }}</span></div>
+        <div class="entry-kicker">
+          <NuxtLink :to="archiveFilterLink('/timeline', { type: memory.type })" class="meta-link" :title="`All ${formatType(memory.type).toLowerCase()} memories`">{{ formatType(memory.type) }}</NuxtLink>
+          <span v-if="isDraft" class="draft-badge" title="Nothing has been written in this memory yet">Draft</span>
+          <component :is="place ? NuxtLink : 'span'" v-if="memory.location" :to="place ? archiveFilterLink('/timeline', place) : undefined" class="meta-link meta-link--muted"><Icon name="lucide:map-pin" class="app-icon" />{{ formatMemoryLocation(memory.location) }}</component>
+        </div>
         <NuxtLink :to="getMemoryPath(memory.date, 'timeline')" class="timeline-title-link"><h3>{{ memory.title }}</h3></NuxtLink>
         <p v-if="memory.excerpt">{{ memory.excerpt }}</p>
         <div class="entry-footer">
-          <span v-if="memory.mood" class="mood-label"><span class="mood-dot" :style="{ '--mood-score': memory.mood.score }" />{{ memory.mood.label }} · {{ memory.mood.score }}/10</span>
+          <NuxtLink v-if="memory.mood" :to="archiveFilterLink('/timeline', { mood: memory.mood.label })" class="mood-label meta-link meta-link--muted"><span class="mood-dot" :style="{ '--mood-score': memory.mood.score }" />{{ memory.mood.label }} · {{ memory.mood.score }}/10</NuxtLink>
           <NuxtLink :to="getMemoryPath(memory.date, 'timeline')" class="text-link">Open entry <Icon name="lucide:arrow-up-right" class="app-icon" /></NuxtLink>
         </div>
       </div>
@@ -64,7 +72,7 @@ watch(images, () => {
       >
         <NuxtLink :to="getMemoryPath(memory.date, 'timeline')" class="timeline-carousel-link" :aria-label="`Open ${memory.title}`">
           <Transition v-if="activeImage" :name="`carousel-${direction}`" mode="out-in">
-            <img :key="activeImage.src" :src="activeImage.src" :alt="activeImage.alt" class="timeline-image" loading="lazy" decoding="async">
+            <img :key="activeImage.src" :src="activeImage.thumb || activeImage.src" :alt="activeImage.alt" class="timeline-image" loading="lazy" decoding="async">
           </Transition>
         </NuxtLink>
         <template v-if="images.length > 1">

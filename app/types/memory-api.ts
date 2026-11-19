@@ -1,7 +1,11 @@
-import type { Memory, MemorySearchResult } from '~/types/memory'
+import type { Memory, MemorySearchResult, MemorySummary } from '~/types/memory'
 
 export interface MemoryListResponse {
   memories: Memory[]
+}
+
+export interface MemorySummaryListResponse {
+  memories: MemorySummary[]
 }
 
 export interface MemoryDetailResponse {

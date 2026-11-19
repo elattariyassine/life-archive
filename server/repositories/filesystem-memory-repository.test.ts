@@ -163,7 +163,7 @@ describe('filesystem memory repository', () => {
     await repository.createMemory(createInput('2026-12-08', { tags: ['summer'], location: { name: 'Essaouira', city: 'Essaouira', country: 'Morocco', latitude: 31, longitude: -9, precision: 'place', source: 'manual' } }))
     await repository.createMemory(createInput('2026-12-09', { tags: ['winter'], location: { name: 'No coordinates', precision: 'unknown', source: 'manual' } }))
 
-    const points = await repository.getMemoryMapPoints({ year: 2026, type: 'travel', tag: 'sum', country: 'mor', city: 'essa' })
+    const points = await repository.getMemoryMapPoints({ year: 2026, type: 'travel', tag: 'summer', country: 'morocco', city: 'Essaouira' })
 
     expect(points).toHaveLength(1)
     expect(points[0]).toMatchObject({ date: '2026-12-08', location: { latitude: 31, longitude: -9 } })

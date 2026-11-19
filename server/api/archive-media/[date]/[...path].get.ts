@@ -3,6 +3,7 @@ import { extname } from 'node:path'
 import { resolveArchiveMediaPath } from '../../../repositories/filesystem-memory-repository'
 import { getMemoryRepositoryMode } from '../../../utils/memory-repository'
 import { assertRequestDate } from '../../../utils/query'
+import { canResize, getThumbnail, parseThumbnailWidth } from '../../../utils/thumbnails'
 
 const mimeTypes: Record<string, string> = {
   '.avif': 'image/avif',
@@ -38,6 +39,17 @@ export default defineEventHandler(async (event) => {
   if (getMemoryRepositoryMode(config) !== 'filesystem' || !config.archiveDir) throw createError({ statusCode: 404, statusMessage: 'Media not found' })
   const filePath = await resolveArchiveMediaPath(String(config.archiveDir), date, mediaPath)
   if (!filePath) throw createError({ statusCode: 404, statusMessage: 'Media not found' })
+  const width = parseThumbnailWidth(getQuery(event).w)
+  if (width && canResize(filePath)) {
+    try {
+      const thumbnail = await getThumbnail(filePath, width)
+      setHeader(event, 'Content-Type', 'image/webp')
+      setHeader(event, 'Cache-Control', 'private, max-age=86400')
+      return thumbnail
+    } catch (error) {
+      console.warn('[life-archive] thumbnail generation failed, serving the original', error instanceof Error ? error.message : error)
+    }
+  }
   setHeader(event, 'Content-Type', mimeTypes[extname(filePath).toLowerCase()] || 'application/octet-stream')
   setHeader(event, 'Cache-Control', 'private, max-age=60')
   return readFile(filePath)
