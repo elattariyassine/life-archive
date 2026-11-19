@@ -31,7 +31,7 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     archiveDir: '',
-    archiveRepository: '',
+    archiveHostDir: '',
     geocodingProvider: 'photon',
     photonUrl: 'https://photon.komoot.io/api',
     public: {

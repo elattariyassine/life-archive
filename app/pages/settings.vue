@@ -25,15 +25,10 @@ const statusBadge = computed(() => {
   if (!isFilesystem.value) return 'Preview'
   return isArchiveAvailable.value ? 'Connected' : 'Unavailable'
 })
-const directoryTitle = computed(() => {
-  if (!status.value?.archiveConfigured) return 'Not configured'
-  return isFilesystem.value ? 'Configured' : 'Configured, inactive'
-})
-const directoryDescription = computed(() => {
-  if (!isFilesystem.value && status.value?.archiveConfigured) return 'An archive path is present, but the sample repository is currently active.'
-  if (isFilesystem.value) return 'The filesystem adapter reads from the separate Life Archive data repository configured for this server.'
-  return 'Set an archive path on the server to connect a separate Life Archive data repository.'
-})
+const directoryTitle = computed(() => status.value?.archiveConfigured ? 'Configured' : 'Not configured')
+const directoryDescription = computed(() => status.value?.archiveConfigured
+  ? 'Memories are read from and created in the folder set by NUXT_ARCHIVE_DIR.'
+  : 'Set NUXT_ARCHIVE_DIR in the .env file (or the Docker setup) to the absolute path of your archive folder, then restart the server.')
 const refreshArchiveStatus = () => refreshStatus()
 const { preference: themePreference, themePreferences } = useTheme()
 const themeLabels = { system: 'Match system', light: 'Light paper', dark: 'Night reading' } as const
