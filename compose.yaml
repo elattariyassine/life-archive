@@ -1,0 +1,28 @@
+# Runs Life Archive against the archive folder set by NUXT_ARCHIVE_DIR in .env.
+#
+# The archive is a bind mount: the files stay in that folder on your machine. Stopping, removing,
+# or rebuilding the container (including `docker compose down -v`) never touches them.
+# Only the app lives in the container.
+services:
+  life-archive:
+    build: .
+    image: life-archive:latest
+    container_name: life-archive
+    restart: unless-stopped
+    ports:
+      # Bound to localhost only: the archive is personal, so it is not exposed to your network.
+      - "127.0.0.1:${LIFE_ARCHIVE_PORT:-3000}:3000"
+    environment:
+      # Where the app sees the archive inside the container.
+      NUXT_ARCHIVE_DIR: /archive
+      # The same folder on your machine, so "Open in VS Code" and "Copy path" show host paths.
+      NUXT_ARCHIVE_HOST_DIR: ${NUXT_ARCHIVE_DIR:?Set NUXT_ARCHIVE_DIR in .env to the absolute path of your archive folder}
+      NUXT_PHOTON_URL: ${NUXT_PHOTON_URL:-https://photon.komoot.io/api}
+      NUXT_PUBLIC_MAP_STYLE_URL: ${NUXT_PUBLIC_MAP_STYLE_URL:-https://tiles.openfreemap.org/styles/positron}
+    volumes:
+      - type: bind
+        source: ${NUXT_ARCHIVE_DIR:?Set NUXT_ARCHIVE_DIR in .env to the absolute path of your archive folder}
+        target: /archive
+        bind:
+          # Fail instead of silently creating an empty folder when the path is wrong.
+          create_host_path: false

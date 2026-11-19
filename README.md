@@ -1,37 +1,55 @@
 # Life Archive
 
-Life Archive is a local-first personal memory organizer and reader built with Nuxt 4, Vue, TypeScript, and Nuxt Content. It creates the folder structure for a memory, then lets VS Code, Obsidian, or another filesystem editor own the Markdown and media. The application defaults to the in-memory fixture repository, while a separate Markdown archive can be enabled locally without putting personal data in this public application repository.
+Life Archive is a local-first personal memory organizer and reader built with Nuxt 4, Vue, TypeScript, and Nuxt Content. It creates the folder structure for a memory, then lets VS Code, Obsidian, or another filesystem editor own the Markdown and media. Without configuration it shows built-in sample memories; point `NUXT_ARCHIVE_DIR` at your own Markdown archive to use it, without putting personal data in this application repository.
 
 ## Run locally
 
 ```bash
+cp .env.example .env   # then set NUXT_ARCHIVE_DIR (see below)
 npm install
 npm run dev
 ```
 
 The development server binds to `127.0.0.1`. Build the production bundle with `npm run build`, run the repository tests with `npm test`, and run TypeScript validation with `npm run typecheck`.
 
-## Connect a private archive
+## Connect your archive
 
-The default mode is the sample repository. To use the external filesystem archive, set an absolute archive path and select the filesystem adapter:
-
-```bash
-NUXT_ARCHIVE_REPOSITORY=filesystem \
-NUXT_ARCHIVE_DIR=/absolute/path/to/life-archive-data \
-npm run dev
-```
-
-Location search uses Photon server-side. Override its endpoint or the optional MapLibre style when using a different hosted service:
+Set the absolute path of your archive folder in `.env`:
 
 ```bash
-NUXT_PHOTON_URL=https://photon.komoot.io/api \
-NUXT_PUBLIC_MAP_STYLE_URL=https://tiles.openfreemap.org/styles/positron \
-npm run dev
+NUXT_ARCHIVE_DIR=/absolute/path/to/life-archive-data
 ```
 
-The default map style is OpenFreeMap's official Positron style rather than public OpenStreetMap community tiles. The MapLibre attribution control displays the OpenFreeMap/OpenStreetMap attribution from the style. Review the selected tile provider's current terms, attribution requirements, availability, and privacy policy before production use. Map tiles are loaded only after opening the picker, and the browser will contact that provider for the visible map viewport.
+When `NUXT_ARCHIVE_DIR` is set, Life Archive reads and creates memories in that folder. When it is empty, the app shows the built-in sample memories, which are read-only. `.env` is ignored by Git, so the path to your personal data never ends up in this repository. Restart the server after changing it.
 
-When `NUXT_ARCHIVE_DIR` is set without `NUXT_ARCHIVE_REPOSITORY`, filesystem mode is selected automatically. Set `NUXT_ARCHIVE_REPOSITORY=sample` to force fixtures while keeping an archive path configured.
+Location search uses Photon server-side. Override its endpoint or the optional MapLibre style in `.env` when using a different hosted service:
+
+```bash
+NUXT_PHOTON_URL=https://photon.komoot.io/api
+NUXT_PUBLIC_MAP_STYLE_URL=https://tiles.openfreemap.org/styles/positron
+```
+
+The default map style is OpenFreeMap's official Positron style rather than public OpenStreetMap community tiles. The MapLibre attribution control displays the OpenFreeMap/OpenStreetMap attribution from the style. Review the selected tile provider's current terms, attribution requirements, availability, and privacy policy before production use. Map tiles are loaded only after opening the map, and the browser will contact that provider for the visible map viewport.
+
+## Run with Docker
+
+The image contains only the application. Your archive stays in its folder on your machine and is bind-mounted into the container at `/archive`, so stopping, removing, or rebuilding the container, including `docker compose down -v`, never changes or deletes it.
+
+```bash
+cp .env.example .env   # set NUXT_ARCHIVE_DIR to your archive folder
+docker compose up -d --build
+```
+
+Open <http://127.0.0.1:3000>. The port is published on `127.0.0.1` only, so the archive is not reachable from your network; set `LIFE_ARCHIVE_PORT` in `.env` to use another port. Compose refuses to start when `NUXT_ARCHIVE_DIR` is empty or points to a folder that does not exist, instead of silently creating an empty one.
+
+Inside the container the app uses `NUXT_ARCHIVE_DIR=/archive`. Compose also passes your host path as `NUXT_ARCHIVE_HOST_DIR`, so "Open in VS Code" and "Copy path" show paths on your machine rather than container paths. Thumbnails are cached in the container's temporary directory and are regenerated after the container is recreated.
+
+The container runs as the unprivileged `node` user (UID 1000). On Linux, the archive folder must be writable by that UID to create or delete memories; Docker Desktop on macOS and Windows handles this automatically.
+
+```bash
+docker compose logs -f     # follow logs
+docker compose down        # stop and remove the container; the archive is untouched
+```
 
 The archive is expected to look like this:
 
@@ -51,25 +69,28 @@ life-archive-data/
                 └── photo-01.jpg
 ```
 
-The server reads `index.md` frontmatter and Markdown content, scans the adjacent `media/` directory, and returns normalized `Memory` objects. Markdown and original media remain the source of truth. Creation is available only in filesystem mode; the sample repository remains read-only. There is still no file watching, backup, or synchronization.
+The server reads `index.md` frontmatter and Markdown content, scans the adjacent `media/` directory, and returns normalized `Memory` objects. Markdown and original media remain the source of truth. Creating and deleting memories is available only when `NUXT_ARCHIVE_DIR` is set; the sample memories are read-only. There is no backup or synchronization, and no file watching: open pages re-read the archive when the browser tab regains focus.
 
 ## Project structure
 
 ```text
 app/
 ├── assets/css/main.css       # Design tokens and responsive editorial UI
-├── components/               # Shell, navigation, cards, timeline entries, creation and external-editor actions
-├── composables/              # Repository access used by pages
+├── components/               # Shell, tab bar, filter bar, timeline entries, dialogs, creation and external-editor actions
+├── composables/              # Repository access, URL filters, archive status, theme, progressive lists
 ├── data/fixtures.ts          # Realistic sample memories for the MVP
-├── pages/                    # Home, timeline, detail, gallery, map, settings
+├── error.vue                 # Branded 404/error page that suggests the nearest memories
+├── pages/                    # Home, timeline, calendar, detail, gallery, map, settings, random
 ├── repositories/             # API adapter, contract and fixture adapter
 ├── types/memory.ts           # Shared memory schema
-└── utils/                    # Date, location, and API error helpers
+└── utils/                    # Date, filter, discovery (on this day, related, calendar), location, and API error helpers
 fixtures/archive/             # Sample Markdown source examples, outside app content/
 public/sample-media/          # Offline sample media referenced by the fixtures
 server/api/                   # Typed memory, geocoding, EXIF, map, and media endpoints
 server/repositories/          # External filesystem repository and tests
-server/utils/                 # Runtime repository selection, geocoding, EXIF, and query validation
+server/utils/                 # Runtime repository selection, summaries, thumbnails, geocoding, EXIF, and query validation
+Dockerfile, compose.yaml      # Production image and Compose setup; the archive is bind-mounted, never copied in
+.env.example                  # Template for .env (NUXT_ARCHIVE_DIR and optional overrides)
 ```
 
 ## Data architecture
@@ -89,13 +110,15 @@ interface MemoryRepository {
 The read API surface is:
 
 - `GET /api/memories` with optional `year` and `month` query parameters
+- `GET /api/summaries` for every memory without its Markdown body, plus `wordCount`, `draft`, and media thumbnails; lists, grids, the calendar, and navigation use this
+- `GET /api/filter-options` for the years, tags, moods, countries, and cities used by the shared filter bar
 - `GET /api/memories/YYYY-MM-DD`
 - `GET /api/search?q=<query>` with optional `year` and `type` filters
 - `GET /api/geocode?q=<place-query>` for normalized Photon suggestions
 - `POST /api/reverse-geocode` for explicit accepted-EXIF labels, with coordinates in the request body
 - `GET /api/map` for coordinate-bearing memory previews with combined filters
 - `GET /api/memories/YYYY-MM-DD/location-suggestions` for explicit local EXIF inspection
-- `GET /api/archive-media/YYYY-MM-DD/<media-path>` for validated filesystem media
+- `GET /api/archive-media/YYYY-MM-DD/<media-path>` for validated filesystem media; add `?w=320|640|1280` for a cached WebP thumbnail of JPEG, PNG, WebP, AVIF, or TIFF images (generated with `sharp` into the OS temp directory, never inside the archive)
 
 The write API surface is filesystem-only:
 
@@ -103,9 +126,11 @@ The write API surface is filesystem-only:
 - `PATCH /api/memories/YYYY-MM-DD/location` to accept or explicitly correct structured location metadata with an expected version
 - `DELETE /api/memories/YYYY-MM-DD` with `expectedVersion` to delete a memory and its media
 
-The creation form at `/memory/new` collects the date, title, type, location, mood, and tags. Location text can remain manual, or use server-side Photon suggestions, a lazy MapLibre picker, or an explicit browser-device location action. Only the location query is sent to Photon; memory content and metadata are not included. On success it creates `YYYY/MM/DD/index.md` with YAML frontmatter, creates the adjacent `media/` directory, and writes a minimal `# What happened` body. The success state and every filesystem-backed detail page provide the archive folder path, an `Open in VS Code` action using the registered `vscode://file/...` URI handler, and a `Copy path` fallback. Life Archive does not edit Markdown or upload media.
+The creation dialog (press `N`, or choose an empty past day in the calendar; `/memory/new` opens it) is available only when a filesystem archive is connected, and otherwise explains why. It warns before submitting when the chosen date already holds a memory, since each day has one folder. It collects the date, title, type, location, mood, and tags. Location text can remain manual, or use server-side Photon suggestions, a lazy MapLibre picker, or an explicit browser-device location action. Only the location query is sent to Photon; memory content and metadata are not included. On success it creates `YYYY/MM/DD/index.md` with YAML frontmatter, creates the adjacent `media/` directory, and writes a minimal `# What happened` body. The success state and every filesystem-backed detail page provide the archive folder path, an `Open in VS Code` action using the registered `vscode://file/...` URI handler, and a `Copy path` fallback. Life Archive does not edit Markdown or upload media.
 
-The search page at `/search` searches titles, Markdown body text, tags, and locations with case-insensitive partial matching. Results are read from the current repository on every search, ordered newest first, and can be narrowed by year and memory type. Markdown formatting is removed for body matching and result excerpts.
+Search (press `⌘K`/`Ctrl+K`; `/search` opens it) searches titles, Markdown body text, tags, and locations with case-insensitive partial matching. Results are read from the current repository on every search, ordered newest first, and can be narrowed by year and memory type. Markdown formatting is removed for body matching and result excerpts.
+
+Timeline, gallery, and map share URL-based filters (`year`, `type`, `tag`, `mood`, `country`, `city`), so a filtered view can be bookmarked and shared, and the tags, places, types, and moods shown on a memory link to those filtered views. The home page shows memories from the same day in earlier years (or the same week when the day is empty), `/calendar` shows each year as month grids, `/random` opens a random memory, and each memory suggests related pages by shared tags, place, and season. Data is re-read when the browser tab regains focus, so edits made in an external editor appear without a reload. The interface supports light and dark themes (System, Light, or Dark in Settings, stored in a cookie).
 
 Missing archive roots return an empty list for reads. Invalid or malformed entries are skipped. Invalid dates and filters return a client error. Filesystem-backed memory responses include the resolved memory folder path so the local UI can offer external editing actions; the server never accepts that path as an API input.
 
