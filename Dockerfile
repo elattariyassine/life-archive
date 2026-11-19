@@ -19,12 +19,12 @@ RUN npm rebuild && npm run build
 
 # ---- Runtime ----
 # Only the self-contained Nitro output ships. The archive itself is never part of the image:
-# it is bind-mounted from the host at /archive (see compose.yaml).
+# without configuration the app shows its sample memories; set NUXT_ARCHIVE_DIR and mount
+# your archive folder to use your own (compose.yaml does both).
 FROM node:24-bookworm-slim AS runtime
 ENV NODE_ENV=production \
     HOST=0.0.0.0 \
-    PORT=3000 \
-    NUXT_ARCHIVE_DIR=/archive
+    PORT=3000
 WORKDIR /app
 
 COPY --from=build --chown=node:node /app/.output ./.output
