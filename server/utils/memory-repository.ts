@@ -1,26 +1,39 @@
 import type { H3Event } from 'h3'
 import type { MemoryMapRepository } from '../../app/types/location-discovery'
-import type { MemoryRepository } from '../../app/types/memory'
+import type { Memory, MemoryRepository } from '../../app/types/memory'
 import { createFixtureMemoryRepository } from '../../app/repositories/memory-repository'
 import { ArchivePathError, ArchiveUnavailableError, InvalidArchiveConfigurationError, InvalidMemoryDateError, InvalidMemoryMetadataError, MemoryConflictError, MemoryNotFoundError, createFilesystemMemoryRepository, type FilesystemMemoryRepository } from '../repositories/filesystem-memory-repository'
 
 export type MemoryRepositoryMode = 'sample' | 'filesystem'
 
-export const getMemoryRepositoryMode = (config: { archiveDir?: unknown; archiveRepository?: unknown }): MemoryRepositoryMode => {
-  if (config.archiveRepository === 'filesystem' || (!config.archiveRepository && config.archiveDir)) return 'filesystem'
-  if (!config.archiveRepository || config.archiveRepository === 'sample') return 'sample'
-  throw createError({ statusCode: 500, statusMessage: 'Unsupported archive repository' })
+/** The archive folder is used whenever NUXT_ARCHIVE_DIR is set; otherwise the read-only sample memories are shown. */
+export const getMemoryRepositoryMode = (config: { archiveDir?: unknown }): MemoryRepositoryMode => {
+  return typeof config.archiveDir === 'string' && config.archiveDir.trim() ? 'filesystem' : 'sample'
+}
+
+/**
+ * Folder paths are shown to the reader for "Open in VS Code" and "Copy path". When the server sees the archive
+ * at a different location than the reader's machine (for example /archive inside Docker), NUXT_ARCHIVE_HOST_DIR
+ * maps the server path back to the host path.
+ */
+export const toHostFolderPath = (folderPath: string | undefined, archiveDir: string, hostDir: string) => {
+  if (!folderPath || !hostDir.trim() || !archiveDir.trim()) return folderPath
+  const serverRoot = archiveDir.replace(/[\\/]+$/, '')
+  if (folderPath !== serverRoot && !folderPath.startsWith(`${serverRoot}/`)) return folderPath
+  return `${hostDir.replace(/[\\/]+$/, '')}${folderPath.slice(serverRoot.length)}`
+}
+
+export function toClientMemory<T extends Pick<Memory, 'folderPath'>>(event: H3Event, memory: T): T {
+  const config = useRuntimeConfig(event)
+  const folderPath = toHostFolderPath(memory.folderPath, String(config.archiveDir || ''), String(config.archiveHostDir || ''))
+  return folderPath === memory.folderPath ? memory : { ...memory, folderPath }
 }
 
 export function getServerMemoryRepository(event: H3Event): MemoryRepository {
   const config = useRuntimeConfig(event)
   const mode = getMemoryRepositoryMode(config)
   if (mode === 'sample') return createFixtureMemoryRepository()
-  if (mode === 'filesystem') {
-    if (!config.archiveDir) throw createError({ statusCode: 500, statusMessage: 'Archive directory is not configured' })
-    return createFilesystemMemoryRepository(String(config.archiveDir))
-  }
-  throw createError({ statusCode: 500, statusMessage: 'Unsupported archive repository' })
+  return createFilesystemMemoryRepository(String(config.archiveDir).trim())
 }
 
 export function getServerMemoryMapRepository(event: H3Event): MemoryMapRepository {
@@ -30,8 +43,7 @@ export function getServerMemoryMapRepository(event: H3Event): MemoryMapRepositor
 export function getFilesystemMemoryRepository(event: H3Event): FilesystemMemoryRepository {
   const config = useRuntimeConfig(event)
   if (getMemoryRepositoryMode(config) !== 'filesystem') throw publicRepositoryError(409, 'Memory creation requires filesystem mode', 'REPOSITORY_READ_ONLY')
-  if (!config.archiveDir) throw createError({ statusCode: 500, statusMessage: 'Archive directory is not configured' })
-  return createFilesystemMemoryRepository(String(config.archiveDir))
+  return createFilesystemMemoryRepository(String(config.archiveDir).trim())
 }
 
 export async function withRepositoryErrors<T>(operation: () => Promise<T>): Promise<T> {

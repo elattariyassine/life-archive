@@ -1,0 +1,28 @@
+# Runs Life Archive. With no configuration it shows the built-in sample memories (read-only).
+#
+# To use your own archive, set NUXT_ARCHIVE_DIR in .env to the absolute path of your archive folder.
+# That folder is bind-mounted into the container: the files stay on your machine, and stopping,
+# removing, or rebuilding the container never touches them.
+services:
+  life-archive:
+    build: .
+    image: life-archive:latest
+    container_name: life-archive
+    restart: unless-stopped
+    ports:
+      # Localhost only by default. Set LIFE_ARCHIVE_BIND=0.0.0.0 to expose it, e.g. for a public demo.
+      - "${LIFE_ARCHIVE_BIND:-127.0.0.1}:${LIFE_ARCHIVE_PORT:-3000}:3000"
+    environment:
+      # /archive inside the container when an archive is configured, empty (sample memories) otherwise.
+      NUXT_ARCHIVE_DIR: ${NUXT_ARCHIVE_DIR:+/archive}
+      # The same folder on your machine, so "Open in VS Code" and "Copy path" show host paths.
+      NUXT_ARCHIVE_HOST_DIR: ${NUXT_ARCHIVE_DIR:-}
+      NUXT_PHOTON_URL: ${NUXT_PHOTON_URL:-https://photon.komoot.io/api}
+      NUXT_PUBLIC_MAP_STYLE_URL: ${NUXT_PUBLIC_MAP_STYLE_URL:-https://tiles.openfreemap.org/styles/positron}
+    volumes:
+      # An absolute path is bind-mounted from your machine. Without one, an empty placeholder
+      # volume is mounted instead and the app ignores it.
+      - ${NUXT_ARCHIVE_DIR:-archive-placeholder}:/archive
+
+volumes:
+  archive-placeholder:

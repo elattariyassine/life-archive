@@ -1,0 +1,25 @@
+# Dependencies and build outputs are recreated inside the image
+node_modules
+.nuxt
+.output
+.nitro
+.data
+.cache
+dist
+
+# Never send local configuration, secrets, or personal data to the build
+.env
+.env.*
+!.env.example
+
+# Repository and editor metadata
+.git
+.gitignore
+.agents
+.mcp.json
+opencode.json
+skills-lock.json
+.DS_Store
+*.log
+Dockerfile
+compose.yaml

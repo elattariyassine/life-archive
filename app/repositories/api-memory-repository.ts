@@ -1,10 +1,10 @@
-import type { MemoryDetailResponse, MemoryListResponse, MemorySearchResponse } from '../types/memory-api'
-import type { MemoryCreateInput, MemoryFilters, MemoryRepository, MemorySearchFilters, MemorySearchRepository, MemoryWriteRepository } from '../types/memory'
+import type { MemoryDetailResponse, MemoryListResponse, MemorySearchResponse, MemorySummaryListResponse } from '../types/memory-api'
+import type { MemoryCreateInput, MemoryFilters, MemoryRepository, MemorySearchFilters, MemorySearchRepository, MemorySummaryRepository, MemoryWriteRepository } from '../types/memory'
 import type { MemoryDeleteResponse, MemoryWriteResponse } from '../types/memory-write-api'
 
 type ApiRequest = <T>(request: string, options?: { query?: Record<string, number | string>; method?: string; body?: BodyInit | Record<string, any> | null }) => Promise<T>
 
-export function createApiMemoryRepository(request: ApiRequest): MemoryRepository & MemorySearchRepository & MemoryWriteRepository {
+export function createApiMemoryRepository(request: ApiRequest): MemoryRepository & MemorySearchRepository & MemoryWriteRepository & MemorySummaryRepository {
   return {
     async getMemories(filters?: MemoryFilters) {
       const query: Record<string, number | string> = {}
@@ -12,6 +12,10 @@ export function createApiMemoryRepository(request: ApiRequest): MemoryRepository
       if (filters?.month !== undefined) query.month = filters.month
       if (filters?.type !== undefined) query.type = filters.type
       const response = await request<MemoryListResponse>('/api/memories', { query })
+      return response.memories
+    },
+    async getMemorySummaries() {
+      const response = await request<MemorySummaryListResponse>('/api/summaries')
       return response.memories
     },
     async getMemoryByDate(date) {

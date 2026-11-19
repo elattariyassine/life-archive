@@ -25,6 +25,8 @@ export interface MemoryMedia {
   alt: string
   path?: string
   kind?: MemoryMediaKind
+  /** A smaller rendition for grids and lists; falls back to `src` when absent. */
+  thumb?: string
 }
 
 export type MemoryMediaKind = 'image' | 'video' | 'audio' | 'document'
@@ -48,6 +50,12 @@ export interface Memory {
   music?: MemoryMusic
   version?: string
   folderPath?: string
+}
+
+/** The lightweight shape used by lists, grids, and navigation: everything except the Markdown body. */
+export interface MemorySummary extends Pick<Memory, 'date' | 'title' | 'type' | 'mood' | 'tags' | 'location' | 'excerpt' | 'media' | 'music'> {
+  wordCount: number
+  draft: boolean
 }
 
 export interface MemoryFilters {
@@ -87,6 +95,10 @@ export interface MemoryWriteRepository {
   createMemory(input: MemoryCreateInput): Promise<Memory>
   updateMemoryLocation(date: string, expectedVersion: string, location: MemoryLocation): Promise<Memory>
   deleteMemory(date: string, expectedVersion: string): Promise<void>
+}
+
+export interface MemorySummaryRepository {
+  getMemorySummaries(): Promise<MemorySummary[]>
 }
 
 export interface MemoryRepository {

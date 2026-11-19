@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import type { MemoryRepositoryStatusResponse } from '~/types/memory-api'
-
-const { data: status, error: statusError, refresh: refreshStatus } = await useFetch<MemoryRepositoryStatusResponse>('/api/status')
+const { status, error: statusError, refresh: refreshStatus } = useArchiveStatus()
 const isFilesystem = computed(() => status.value?.mode === 'filesystem')
 const isArchiveAvailable = computed(() => Boolean(status.value?.archiveAvailable))
 const isChecking = computed(() => !status.value && !statusError.value)
@@ -27,22 +25,21 @@ const statusBadge = computed(() => {
   if (!isFilesystem.value) return 'Preview'
   return isArchiveAvailable.value ? 'Connected' : 'Unavailable'
 })
-const directoryTitle = computed(() => {
-  if (!status.value?.archiveConfigured) return 'Not configured'
-  return isFilesystem.value ? 'Configured' : 'Configured, inactive'
-})
-const directoryDescription = computed(() => {
-  if (!isFilesystem.value && status.value?.archiveConfigured) return 'An archive path is present, but the sample repository is currently active.'
-  if (isFilesystem.value) return 'The filesystem adapter reads from the separate Life Archive data repository configured for this server.'
-  return 'Set an archive path on the server to connect a separate Life Archive data repository.'
-})
+const directoryTitle = computed(() => status.value?.archiveConfigured ? 'Configured' : 'Not configured')
+const directoryDescription = computed(() => status.value?.archiveConfigured
+  ? 'Memories are read from and created in the folder set by NUXT_ARCHIVE_DIR.'
+  : 'Set NUXT_ARCHIVE_DIR in the .env file (or the Docker setup) to the absolute path of your archive folder, then restart the server.')
 const refreshArchiveStatus = () => refreshStatus()
+const { preference: themePreference, themePreferences } = useTheme()
+const themeLabels = { system: 'Match system', light: 'Light paper', dark: 'Night reading' } as const
+
+useSeoMeta({ title: 'Settings / Life Archive' })
 </script>
 
 <template>
   <div class="page page-container settings-page">
     <section class="page-intro">
-      <p class="eyebrow">The quiet machinery / 03</p>
+      <p class="eyebrow">The quiet machinery</p>
       <h1>Settings</h1>
       <p class="page-intro-copy">A small amount of information about how this archive is kept.</p>
     </section>
@@ -54,6 +51,16 @@ const refreshArchiveStatus = () => refreshStatus()
       <section class="setting-row">
         <div class="setting-copy"><span class="fact-label">Archive directory</span><h2 class="setting-value">{{ directoryTitle }}</h2><p>{{ directoryDescription }}</p></div>
         <div class="setting-aside setting-aside--configuration"><span class="setting-aside-label">Server managed</span><code>NUXT_ARCHIVE_DIR</code></div>
+      </section>
+      <section class="setting-row">
+        <div class="setting-copy"><span class="fact-label">Appearance</span><h2>{{ themeLabels[themePreference] }}</h2><p>Night reading uses warm, dark paper. This choice is stored in this browser only.</p></div>
+        <div class="theme-choice" role="radiogroup" aria-label="Theme">
+          <label v-for="option in themePreferences" :key="option" :class="{ active: themePreference === option }">
+            <input v-model="themePreference" type="radio" name="theme" :value="option" class="sr-only">
+            <Icon :name="option === 'system' ? 'lucide:monitor' : option === 'light' ? 'lucide:sun' : 'lucide:moon'" class="app-icon" />
+            <span>{{ option === 'system' ? 'System' : option === 'light' ? 'Light' : 'Dark' }}</span>
+          </label>
+        </div>
       </section>
       <section class="setting-row">
         <div class="setting-copy"><span class="fact-label">Storage</span><h2>Markdown + media</h2><p>Markdown files remain the source of truth. Images, audio and video stay beside the entry that references them.</p></div>

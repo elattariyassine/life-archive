@@ -12,6 +12,8 @@ const emit = defineEmits<{
 }>()
 
 const repository = useMemoryRepository() as MemoryWriteRepository
+const { createDate } = useGlobalModal()
+const { canWrite, isFilesystem, isChecking } = useArchiveStatus()
 const busy = ref(false)
 const error = ref('')
 
@@ -58,6 +60,19 @@ watch(() => props.open, open => {
     restore-focus-selector="[data-global-trigger='create']"
     @close="close"
   >
-    <MemoryCreationForm v-if="open" compact :busy="busy" :error="error" @save="createMemory" @cancel="close" />
+    <MemoryCreationForm v-if="open && canWrite" :initial-date="createDate || undefined" :busy="busy" :error="error" @save="createMemory" @cancel="close" />
+    <div v-else-if="open" class="creation-readonly">
+      <p class="eyebrow">Capture a page / N</p>
+      <h2 id="create-memory-modal-title">{{ isChecking ? 'Checking the archive…' : 'This archive is read-only' }}</h2>
+      <p v-if="!isChecking" class="creation-readonly-copy">
+        {{ isFilesystem
+          ? 'The configured archive folder could not be found or opened, so a new memory has nowhere to go. Check the folder and restart the server.'
+          : 'You are browsing the sample memories. New memories are created as folders in your own archive, so connect one first by setting NUXT_ARCHIVE_DIR on the server.' }}
+      </p>
+      <div class="creation-actions">
+        <NuxtLink to="/settings" class="button button--dark" @click="close">Archive settings <Icon name="lucide:arrow-right" class="app-icon" /></NuxtLink>
+        <button type="button" class="button button--outline" @click="close">Close</button>
+      </div>
+    </div>
   </ModalShell>
 </template>

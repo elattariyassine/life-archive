@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { MemorySearchResult } from '~/types/memory'
+import { memoryTypes, type MemorySearchResult, type MemoryType } from '~/types/memory'
 import { formatMemoryDate, formatType, getMemoryImages, getMemoryPath } from '~/utils/memory'
 import { formatMemoryLocation } from '~/utils/location'
 
@@ -12,7 +12,10 @@ const emit = defineEmits<{
 }>()
 
 const repository = useMemoryRepository()
+const { data: filterOptions } = useArchiveFilterOptions()
 const query = ref('')
+const searchYear = ref<number | undefined>()
+const searchType = ref<MemoryType | undefined>()
 const results = ref<MemorySearchResult[]>([])
 const selectedIndex = ref(0)
 const loading = ref(false)
@@ -26,6 +29,8 @@ const reset = () => {
   if (debounceTimer) clearTimeout(debounceTimer)
   requestId += 1
   query.value = ''
+  searchYear.value = undefined
+  searchType.value = undefined
   results.value = []
   selectedIndex.value = 0
   loading.value = false
@@ -46,7 +51,7 @@ const search = async (value: string) => {
   loading.value = true
   error.value = ''
   try {
-    const nextResults = await repository.searchMemories({ query: trimmedQuery })
+    const nextResults = await repository.searchMemories({ query: trimmedQuery, year: searchYear.value, type: searchType.value })
     if (currentRequest !== requestId) return
     results.value = nextResults
     selectedIndex.value = 0
@@ -73,6 +78,14 @@ watch(query, value => {
   debounceTimer = setTimeout(() => search(value), 180)
 })
 
+watch([searchYear, searchType], () => {
+  if (query.value.trim()) search(query.value)
+})
+
+const toggleType = (type: MemoryType) => {
+  searchType.value = searchType.value === type ? undefined : type
+}
+
 watch(() => props.open, open => {
   if (!open) reset()
 })
@@ -91,6 +104,7 @@ const openSelected = () => {
 }
 
 const handleKeydown = (event: KeyboardEvent) => {
+  if (event.target instanceof HTMLSelectElement) return
   if (event.key === 'ArrowDown') {
     event.preventDefault()
     moveSelection(1)
@@ -127,6 +141,17 @@ const handleKeydown = (event: KeyboardEvent) => {
         <button v-if="query" type="button" class="search-clear" aria-label="Clear search" @click="query = ''">Clear</button>
       </label>
 
+      <div class="global-search-filters" role="group" aria-label="Narrow the search">
+        <button v-for="type in memoryTypes" :key="type" type="button" class="search-chip" :class="{ 'search-chip--active': searchType === type }" :aria-pressed="searchType === type" @click="toggleType(type)">{{ formatType(type) }}</button>
+        <label v-if="filterOptions.years.length > 1" class="search-chip-select">
+          <span class="sr-only">Year</span>
+          <select v-model="searchYear">
+            <option :value="undefined">Any year</option>
+            <option v-for="year in filterOptions.years" :key="year" :value="year">{{ year }}</option>
+          </select>
+        </label>
+      </div>
+
       <div v-if="loading" class="global-search-state" aria-live="polite">
         <span class="section-label">Looking through the archive</span>
         <p>Finding the right page.</p>
@@ -138,7 +163,7 @@ const handleKeydown = (event: KeyboardEvent) => {
       </div>
       <div v-else-if="!results.length" class="global-search-state">
         <span class="section-label">Nothing found</span>
-        <p>No memory matched “{{ query.trim() }}”.</p>
+        <p>No memory matched “{{ query.trim() }}”{{ searchType || searchYear ? ' with these filters' : '' }}.</p>
       </div>
       <div v-else id="global-search-results" class="global-search-results" role="listbox" aria-label="Search results">
         <NuxtLink

@@ -3,6 +3,7 @@ import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url'
 import type { GeoJSONSource, Map as MapLibreMap } from 'maplibre-gl'
 import type { MemoryMapPoint } from '~/types/location-discovery'
 import { formatMemoryLocation } from '~/utils/location'
+import { formatMemoryDate, formatMemoryDay, formatMemoryMonth, formatType } from '~/utils/memory'
 
 const props = defineProps<{
   points: MemoryMapPoint[]
@@ -278,8 +279,12 @@ onBeforeUnmount(() => {
       <div class="map-inspector-list">
         <article v-for="point in selectedPoints" :key="point.date" class="map-memory-preview">
           <img v-if="pointImage(point)" :src="pointImage(point)?.src" :alt="pointImage(point)?.alt || point.title">
+          <div v-else class="map-memory-preview-tile" aria-hidden="true">
+            <strong>{{ formatMemoryDay(point.date) }}</strong>
+            <span>{{ formatMemoryMonth(point.date) }} {{ point.date.slice(0, 4) }}</span>
+          </div>
           <div class="map-memory-preview-copy">
-            <span class="entry-kicker"><span>{{ point.date }}</span><span>{{ point.type }}</span></span>
+            <span class="entry-kicker"><span>{{ formatMemoryDate(point.date, { month: 'short', day: 'numeric', year: 'numeric' }) }}</span><span>{{ formatType(point.type) }}</span></span>
             <h3>{{ point.title }}</h3>
             <p>{{ formatMemoryLocation(point.location) }}</p>
             <small>{{ point.location.precision === 'place' ? 'Precise place' : 'Approximate city / region' }}</small>
