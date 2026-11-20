@@ -23,6 +23,18 @@ const origin = computed<MemoryOrigin>(() => {
   return value === 'home' || value === 'gallery' || value === 'search' || value === 'timeline' || value === 'map' || value === 'calendar' ? value : 'timeline'
 })
 const returnPath = computed(() => ({ home: '/', timeline: '/timeline', gallery: '/gallery', search: '/?modal=search', map: '/map', calendar: { path: '/calendar', query: { year: memory.value?.date.slice(0, 4) } } })[origin.value])
+const router = useRouter()
+/**
+ * Go back in history when the previous page is the one we link to, so it keeps its scroll position and filters.
+ * Bound in the capture phase so it runs before the link's own navigation, which skips prevented clicks.
+ */
+const returnToOrigin = (event: MouseEvent) => {
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+  const previous = window.history.state?.back
+  if (typeof previous !== 'string' || router.resolve(previous).path !== router.resolve(returnPath.value).path) return
+  event.preventDefault()
+  router.back()
+}
 const returnLabel = computed(() => ({ home: 'Back to archive', timeline: 'Back to timeline', gallery: 'Back to gallery', search: 'Back to search', map: 'Back to map', calendar: 'Back to calendar' })[origin.value])
 const today = useToday()
 const contentWordCount = computed(() => countMemoryWords(memory.value?.content ?? ''))
@@ -99,7 +111,7 @@ useSeoMeta({
 <template>
   <div v-if="memory" class="page memory-page page-container" :class="{ 'memory-page--short': isShortMemory }">
     <ReadingProgress v-if="contentWordCount > 350" :target="articleElement" />
-     <NuxtLink :to="returnPath" class="back-link"><Icon name="lucide:arrow-left" class="app-icon" /> {{ returnLabel }}</NuxtLink>
+     <NuxtLink :to="returnPath" class="back-link" @click.capture="returnToOrigin"><Icon name="lucide:arrow-left" class="app-icon" /> {{ returnLabel }}</NuxtLink>
      <header class="memory-header">
        <div class="memory-header-meta"><MemoryMeta :memory="memory" /><component :is="place ? NuxtLink : 'span'" v-if="memory.location" :to="place ? archiveFilterLink('/timeline', place) : undefined" class="location-meta meta-link meta-link--muted"><Icon name="lucide:map-pin" class="app-icon" />{{ formatMemoryLocation(memory.location) }}</component></div>
         <h1 :class="['memory-title', memoryTitleClass]" :title="memory.title">{{ memory.title }}</h1>

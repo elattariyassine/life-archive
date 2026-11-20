@@ -43,7 +43,6 @@
 }
 
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
 body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.65; -webkit-font-smoothing: antialiased; transition: background-color .25s ease, color .25s ease; }
 input, select, textarea { color-scheme: inherit; }
 a { color: inherit; text-decoration: none; }

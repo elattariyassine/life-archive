@@ -1,9 +1,12 @@
 /**
  * Renders a long list in batches: the first batch on the server, the next ones as a sentinel
  * element scrolls into view. Keeps large archives fast without hiding anything permanently.
+ *
+ * The rendered count is remembered per page for the session, so coming back to a list renders
+ * as many items as before and the browser can restore the scroll position.
  */
-export const useProgressiveList = (total: Ref<number> | ComputedRef<number>, step = 30) => {
-  const limit = ref(step)
+export const useProgressiveList = (total: Ref<number> | ComputedRef<number>, step = 30, key = useRoute().path) => {
+  const limit = useState(`progressive-list:${key}`, () => step)
   const sentinel = ref<HTMLElement | null>(null)
   const hasMore = computed(() => limit.value < total.value)
   let observer: IntersectionObserver | null = null
