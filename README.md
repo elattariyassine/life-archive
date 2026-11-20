@@ -67,6 +67,8 @@ The last box is unpacked. The desk is by the window.
 ![The desk by the window](./media/window.jpg)
 ```
 
+**The folder name is the date.** A memory in `2026/07/02/` belongs to July 2, 2026, whatever the photos inside say. Its `date:` must match the folder, or the memory is skipped. Photo EXIF never changes a date; it's only used to suggest a location. That matters for old scans, whose EXIF date is usually the day they were scanned.
+
 Write in any editor (VS Code, Obsidian, or a plain text editor). Back it up, sync it, or copy it anywhere: it's just files. The **New memory** button (or `N`) creates the folder and a starter file for you.
 
 ## Without Docker
