@@ -1,5 +1,9 @@
 # Life Archive
 
+**Your memories as plain Markdown and photos in folders you own, read back as a timeline, calendar, gallery, and map.**
+
+![A short tour: the timeline, the map with a memory pin, a memory page with its photos, and the calendar](docs/screenshots/demo.gif)
+
 I built Life Archive because I want to keep memories for the future: the big days and the ordinary ones. It's deliberately simple. Each memory is a Markdown file in a folder you own, and Life Archive is a calm way to read them back as a timeline, a calendar, a gallery, and a map. No account, no database, no cloud. If the app disappears tomorrow, your memories are still plain text and photos you can open anywhere.
 
 <picture>
@@ -90,4 +94,8 @@ Your memories never leave your machine. The only outside requests are map tiles 
 
 ## Contributing
 
-Architecture, conventions, and the full memory format live in [AGENTS.md](AGENTS.md) and [`.agents/skills/`](.agents/skills/). Sample photos are from Unsplash; see [credits](public/sample-media/CREDITS.md).
+Architecture, conventions, and the full memory format live in [AGENTS.md](AGENTS.md) and [`.agents/skills/`](.agents/skills/).
+
+## License
+
+[MIT](LICENSE). The sample photos are from Unsplash and keep their own license; see [credits](public/sample-media/CREDITS.md).
