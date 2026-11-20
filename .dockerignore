@@ -16,6 +16,7 @@ dist
 .git
 .gitignore
 .agents
+docs
 .mcp.json
 opencode.json
 skills-lock.json

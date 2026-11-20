@@ -2,6 +2,15 @@
 
 I built Life Archive because I want to keep memories for the future: the big days and the ordinary ones. It's deliberately simple. Each memory is a Markdown file in a folder you own, and Life Archive is a calm way to read them back as a timeline, a calendar, a gallery, and a map. No account, no database, no cloud. If the app disappears tomorrow, your memories are still plain text and photos you can open anywhere.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/memory-dark.jpg">
+  <img src="docs/screenshots/memory-light.jpg" alt="A memory page: title, place, mood, and tags beside the text and its photos">
+</picture>
+
+Every place you've written about shows up on a map, with the memory one click away:
+
+![The map with photo pins in Morocco, France, and Japan, and a memory open beside them](docs/screenshots/map.jpg)
+
 ## Run it
 
 ```bash
